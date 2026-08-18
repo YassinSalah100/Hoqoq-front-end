@@ -146,7 +146,7 @@ function CreateHearingModal({ open, onClose, cases, hearingTypes, employees, onC
             <select required value={hearingTypeId} onChange={(e) => setHearingTypeId(e.target.value)} className={inputClass}>
               <option value="" disabled>اختر...</option>
               {(hearingTypes ?? []).map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+                <option key={t.id} value={t.id}>{t.labelAr}</option>
               ))}
             </select>
           </div>
@@ -254,7 +254,7 @@ export default function Hearings() {
 
   const rows = useMemo(() => (Array.isArray(data) ? data : data?.items ?? []), [data])
   const casesById = useMemo(() => Object.fromEntries((casesAll ?? []).map((c) => [c.id, c])), [casesAll])
-  const hearingTypesById = useMemo(() => Object.fromEntries((hearingTypes ?? []).map((t) => [t.id, t.name])), [hearingTypes])
+  const hearingTypesById = useMemo(() => Object.fromEntries((hearingTypes ?? []).map((t) => [t.id, t.labelAr])), [hearingTypes])
 
   // Real backend permission codes (permissions.constant.ts HEARINGS group):
   // create/edit/assign are distinct codes; both "complete" and "cancel" are
@@ -361,7 +361,7 @@ export default function Hearings() {
               label: 'نوع الجلسة',
               type: 'select',
               required: true,
-              options: (hearingTypes ?? []).map((t) => ({ value: t.id, label: t.name })),
+              options: (hearingTypes ?? []).map((t) => ({ value: t.id, label: t.labelAr })),
             },
             { name: 'scheduledAt', label: 'التاريخ والوقت', type: 'datetime-local', required: true },
             { name: 'judgeName', label: 'اسم القاضي (اختياري)' },

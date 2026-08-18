@@ -34,8 +34,8 @@ function CasesTab() {
     <DataTable
       columns={[
         { key: 'caseNumber', header: 'رقم القضية', render: (r) => <span className="font-mono text-xs">{r.caseNumber}</span> },
-        { key: 'client', header: 'الموكل', sortable: false, render: (r) => r.client?.fullName ?? '—' },
-        { key: 'type', header: 'النوع', sortable: false, render: (r) => r.caseType?.labelAr ?? '—' },
+        { key: 'client', header: 'الموكل', sortable: false, render: (r) => r.clientSnapshot?.name ?? '—' },
+        { key: 'type', header: 'النوع', sortable: false, render: (r) => r.caseType?.nameAr ?? '—' },
         { key: 'status', header: 'الحالة', sortable: false, render: (r) => <EnumBadge code={r.status} map={CASE_STATUS} /> },
       ]}
       data={rows}
