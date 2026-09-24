@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Ban, CheckCircle2, Users as UsersIcon } from 'lucide-react'
+import { Ban, CheckCircle2, Mail, Users as UsersIcon } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import DataTable from '../../components/ui/DataTable'
 import Avatar from '../../components/ui/Avatar'
@@ -25,6 +25,7 @@ export default function Users() {
 
   const { data, loading, error, reload } = useFetch(() => usersApi.list(), [])
   const { data: firms } = useFetch(() => tenantsApi.list(), [])
+  const [resendingId, setResendingId] = useState(null)
 
   const rows = useMemo(() => (Array.isArray(data) ? data : data?.items ?? []), [data])
   const firmRows = useMemo(() => (Array.isArray(firms) ? firms : firms?.items ?? []), [firms])
@@ -49,6 +50,22 @@ export default function Users() {
       reload()
     } catch (err) {
       alert(err.message ?? 'تعذر تحديث حالة الحساب')
+    }
+  }
+
+  // An INVITED account has no usable password yet — it's still waiting on
+  // the owner to open their activation email and set one. There's no
+  // "activate" action for that state; resending the invitation is the only
+  // thing an admin can actually do for it.
+  async function handleResendActivation(user) {
+    setResendingId(user.id)
+    try {
+      await usersApi.resendActivation(user.id)
+      alert(`تم إرسال رابط تفعيل جديد إلى ${user.email}`)
+    } catch (err) {
+      alert(err.message ?? 'تعذر إرسال رابط التفعيل')
+    } finally {
+      setResendingId(null)
     }
   }
 
@@ -112,6 +129,15 @@ export default function Users() {
       render: (r) =>
         r.id === currentUser?.id ? (
           <span className="text-[10px] text-ink-300">حسابك</span>
+        ) : r.status === 'INVITED' ? (
+          <button
+            onClick={() => handleResendActivation(r)}
+            disabled={resendingId === r.id}
+            title="إعادة إرسال رابط التفعيل"
+            className="text-ink-300 hover:text-brass-700 p-1 rounded-lg hover:bg-brass-100 disabled:opacity-50"
+          >
+            <Mail size={14} />
+          </button>
         ) : r.status === 'ACTIVE' ? (
           <button
             onClick={() => handleToggleStatus(r)}

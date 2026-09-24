@@ -182,6 +182,9 @@ export const usersApi = {
   me: () => get('/users/me'),
   updateMe: (data) => patch('/users/me', data), // UpdateProfileDto: fullName, avatarUrl, phone, preferredLanguage, themePreference, showRevenueWidget
   updateStatus: (id, status) => patch(`/users/${id}/status`, { status }), // 'ACTIVE' | 'INACTIVE' — Super Admin only
+  // Issues a fresh 24h activation link and re-sends it — only valid while
+  // the account is still INVITED (400 otherwise). Super Admin only.
+  resendActivation: (id) => post(`/users/${id}/resend-activation`),
 }
 
 // ---- Permissions (the atomic codes an admin can grant — there is no Roles module) ----
