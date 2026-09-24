@@ -22,7 +22,7 @@ import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
 import FormModal from '../../components/ui/FormModal'
 import { tenantsApi, usersApi, subscriptionsApi, permissionsApi, resolveAssetUrl } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
-import { ACCOUNT_TYPE, JOB_CLASSIFICATION, TENANT_STATUS } from '../../data/enums'
+import { ACCOUNT_TYPE, JOB_CLASSIFICATION, TENANT_STATUS, USER_STATUS } from '../../data/enums'
 
 // Super Admin portal.
 //
@@ -238,6 +238,14 @@ export default function Firms() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map((firm) => {
             const members = usersByFirm[firm.id] ?? []
+            // Tenant.status defaults to ACTIVE the moment a firm is
+            // provisioned — it says nothing about whether the owner has
+            // actually finished activating their account yet (they start
+            // as INVITED until they open the emailed link and set a
+            // password/MFA). Without this, a freshly created firm looked
+            // identical to a fully operational one.
+            const owner = members.find((m) => m.id === firm.ownerUserId)
+            const ownerPending = owner?.status === 'INVITED'
             return (
               <div key={firm.id} className="bg-white rounded-xl shadow-card border border-paper-line overflow-hidden">
                 <div className="flex items-start justify-between gap-3 p-5 border-b border-paper-line">
@@ -258,6 +266,7 @@ export default function Firms() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
+                    {ownerPending && <EnumBadge code="INVITED" map={USER_STATUS} />}
                     <EnumBadge code={firm.status} map={TENANT_STATUS} />
                     <span className="inline-flex items-center gap-1 text-xs bg-paper-soft text-ink-500 px-2.5 py-1 rounded-full">
                       <UsersIcon size={11} />
@@ -322,10 +331,17 @@ export default function Firms() {
                               {isOwner && <ShieldCheck size={12} className="text-brass-600 shrink-0" />}
                               {m.fullName || m.email}
                             </span>
-                            <span className="text-xs text-ink-400 shrink-0">
-                              {m.accountType === 'EMPLOYEE' && m.jobClassification
-                                ? JOB_CLASSIFICATION[m.jobClassification] ?? m.jobClassification
-                                : ACCOUNT_TYPE[m.accountType] ?? m.accountType}
+                            <span className="flex items-center gap-1.5 shrink-0">
+                              {m.status === 'INVITED' && (
+                                <span className="text-[10px] bg-paper-soft text-ink-400 px-2 py-0.5 rounded-full">
+                                  {USER_STATUS.INVITED.label}
+                                </span>
+                              )}
+                              <span className="text-xs text-ink-400">
+                                {m.accountType === 'EMPLOYEE' && m.jobClassification
+                                  ? JOB_CLASSIFICATION[m.jobClassification] ?? m.jobClassification
+                                  : ACCOUNT_TYPE[m.accountType] ?? m.accountType}
+                              </span>
                             </span>
                           </li>
                         )

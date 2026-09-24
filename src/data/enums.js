@@ -184,7 +184,7 @@ export const JOB_CLASSIFICATION = {
 // User.status (backend UserStatus enum). INVITED accounts haven't completed
 // activation yet; usersApi.updateStatus only allows toggling ACTIVE/INACTIVE.
 export const USER_STATUS = {
-  INVITED: { label: 'بانتظار التفعيل', bg: 'bg-paper-soft', text: 'text-ink-400' },
+  INVITED: { label: 'في انتظار التفعيل', bg: 'bg-paper-soft', text: 'text-ink-400' },
   ACTIVE: { label: 'نشط', bg: 'bg-emerald-100', text: 'text-emerald-700' },
   INACTIVE: { label: 'موقوف', bg: 'bg-rust-100', text: 'text-rust-600' },
 }
