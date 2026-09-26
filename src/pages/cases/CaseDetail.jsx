@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Send, Plus, FileText, Download, Trash2, Upload, UserX, UserCog, ShieldCheck, Pencil } from 'lucide-react'
+import { Send, Plus, FileText, Download, Trash2, Upload, UserX, UserCog, ShieldCheck, Pencil, Building2, Phone, Info } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import Tabs from '../../components/ui/Tabs'
 import EnumBadge from '../../components/ui/EnumBadge'
@@ -10,7 +10,7 @@ import Avatar from '../../components/ui/Avatar'
 import FormModal from '../../components/ui/FormModal'
 import Modal from '../../components/ui/Modal'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
-import { CASE_STATUS, CASE_PRIORITY, HEARING_STATUS, TASK_STATUS, TASK_PRIORITY, PARTY_TYPE, CASE_CAPABILITIES, groupCaseCapabilities, PAYMENT_METHOD } from '../../data/enums'
+import { CASE_STATUS, CASE_PRIORITY, HEARING_STATUS, TASK_STATUS, TASK_PRIORITY, PARTY_TYPE, groupCaseCapabilities, summarizeGrantedCapabilities, PAYMENT_METHOD } from '../../data/enums'
 import { casesApi, hearingsApi, documentsApi, tasksApi, financeApi, referenceApi, employeesApi, lookupsApi, downloadAuthedFile } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
@@ -131,21 +131,20 @@ function TeamTab({ caseId, team, employees, reload }) {
         <div className="bg-white rounded-xl shadow-card border border-paper-line divide-y divide-paper-line">
           {team.map((t) => {
             const capabilities = (t.roleOnCase ?? '').split(',').filter(Boolean)
+            const summary = summarizeGrantedCapabilities(capabilities)
             return (
-              <div key={t.id} className="px-6 py-3 flex items-center gap-3">
+              <div key={t.id} className="px-6 py-3.5 flex items-center gap-3">
                 <Avatar name={t.user?.fullName} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink-800 truncate">{t.user?.fullName ?? '—'}</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {capabilities.slice(0, 4).map((c) => (
-                      <span key={c} className="inline-flex items-center gap-1 text-[11px] bg-brass-100 text-brass-700 px-2 py-0.5 rounded-full">
-                        <ShieldCheck size={9} />
-                        {CASE_CAPABILITIES[c] ?? c}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                    {summary.map(({ label, count }) => (
+                      <span key={label} className="inline-flex items-center gap-1 text-xs text-ink-500">
+                        <ShieldCheck size={11} className="text-brass-500 shrink-0" />
+                        {label}
+                        <span className="text-ink-300">· {count}</span>
                       </span>
                     ))}
-                    {capabilities.length > 4 && (
-                      <span className="text-[11px] text-ink-400 px-1">+{capabilities.length - 4}</span>
-                    )}
                   </div>
                 </div>
                 {canManage && (
@@ -459,18 +458,37 @@ function OpponentsTab({ opponents }) {
   return (
     <div>
       {opponents.length ? (
-        <div className="bg-white rounded-xl shadow-card border border-paper-line divide-y divide-paper-line">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {opponents.map((o) => (
-            <div key={o.id} className="px-6 py-3 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-ink-800 truncate">{o.name}</p>
-                <p className="text-xs text-ink-400 mt-0.5">
-                  {PARTY_TYPE[o.opponentType] ?? o.opponentType}
-                  {o.representative ? ` — ${o.representative}` : ''}
-                </p>
-                {o.notes && <p className="text-xs text-ink-400 mt-0.5">{o.notes}</p>}
+            <div key={o.id} className="bg-white rounded-xl p-5 shadow-card border border-paper-line flex flex-col">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-11 h-11 rounded-xl bg-rust-100 text-rust-600 flex items-center justify-center shrink-0">
+                  {o.opponentType === 'COMPANY' ? <Building2 size={18} /> : <UserX size={18} />}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-ink-800 truncate">{o.name}</p>
+                  <span className="text-xs text-ink-400">{PARTY_TYPE[o.opponentType] ?? o.opponentType}</span>
+                </div>
               </div>
-              {o.contact && <span className="font-mono text-xs text-ink-400 shrink-0">{o.contact}</span>}
+
+              <div className="space-y-1.5 text-sm text-ink-500">
+                {o.representative && (
+                  <p className="flex items-center gap-2 truncate">
+                    <Info size={12} className="shrink-0 text-ink-300" />
+                    {o.representative}
+                  </p>
+                )}
+                {o.contact && (
+                  <p className="flex items-center gap-2 font-mono text-xs" dir="ltr">
+                    <Phone size={12} className="shrink-0 text-ink-300" />
+                    {o.contact}
+                  </p>
+                )}
+              </div>
+
+              {o.notes && (
+                <p className="text-xs text-ink-400 mt-3 pt-3 border-t border-paper-line leading-relaxed">{o.notes}</p>
+              )}
             </div>
           ))}
         </div>
@@ -697,60 +715,188 @@ function FinanceTab({ caseId }) {
   )
 }
 
-// Every field UpdateCaseDto accepts, minus caseTypeId/primaryLawyerId
-// (changing either mid-case is a much bigger operation — specialization
-// re-checks, billing implications — than this quick-edit form should
-// invite) and minus governorateId/defaultCourtId/circuitId (kept to
-// creation time only, to avoid a second cascading court picker here).
-// `status` is not in UpdateCaseDto at all — use casesApi.changeStatus via
-// the status selector next to the page header instead. closingDate/
-// outcomeSummary are Case columns but aren't exposed on Create/UpdateCaseDto
-// by the backend at all, so there is no way to set them from this UI.
-function EditCaseModal({ open, onClose, caseItem, onSaved }) {
-  const editFields = [
-    { name: 'caseNumber', label: 'رقم القضية', required: true },
-    { name: 'title', label: 'عنوان القضية' },
-    { name: 'courtCaseNumber', label: 'رقم القضية لدى المحكمة' },
-    { name: 'courtCaseYear', label: 'سنة القضية', type: 'number' },
-    { name: 'priority', label: 'الأولوية', type: 'select', options: Object.entries(CASE_PRIORITY).map(([value, v]) => ({ value, label: v.label })) },
-    { name: 'openingDate', label: 'تاريخ الفتح', type: 'date' },
-    { name: 'agreedFee', label: 'الأتعاب المتفق عليها', type: 'number' },
-    { name: 'description', label: 'وصف القضية', type: 'textarea', span: 'full' },
-  ]
+// A lawyer is any employee with at least one configured specialization —
+// mirrors the same rule NewCaseModal (Cases.jsx) uses and the backend
+// enforces server-side (CasesService.validatePrimaryLawyer).
+function isLawyer(employee) {
+  return Boolean(employee?.specializations?.length)
+}
 
-  const initialValues = {
-    caseNumber: caseItem.caseNumber ?? '',
-    title: caseItem.title ?? '',
-    courtCaseNumber: caseItem.courtCaseNumber ?? '',
-    courtCaseYear: caseItem.courtCaseYear ?? '',
-    priority: caseItem.priority ?? 'NORMAL',
-    openingDate: (caseItem.openingDate ?? '').toString().slice(0, 10),
-    agreedFee: caseItem.agreedFee ?? '',
-    description: caseItem.description ?? '',
+// Every field UpdateCaseDto accepts — including caseTypeId/primaryLawyerId/
+// governorateId/defaultCourtId/circuitId, which the old version of this
+// form left out entirely. Activating a case (CasesService.changeStatus)
+// requires all of governorateId, defaultCourtId, caseTypeId,
+// primaryLawyerId, and openingDate — leaving them out here meant a case
+// created without one of them (they're all optional at creation time) could
+// never be completed and activated afterward, only ever failing with
+// "Cannot activate Case; missing: ..." with no way to fix it. `status`
+// itself is still not in UpdateCaseDto — use casesApi.changeStatus via the
+// status selector next to the page header instead. closingDate/
+// outcomeSummary are Case columns but aren't exposed on Create/UpdateCaseDto
+// by the backend at all, so there is still no way to set them from this UI.
+function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
+  const [caseNumber, setCaseNumber] = useState(caseItem.caseNumber ?? '')
+  const [title, setTitle] = useState(caseItem.title ?? '')
+  const [courtCaseNumber, setCourtCaseNumber] = useState(caseItem.courtCaseNumber ?? '')
+  const [courtCaseYear, setCourtCaseYear] = useState(caseItem.courtCaseYear ?? '')
+  const [caseTypeId, setCaseTypeId] = useState(caseItem.caseTypeId ?? '')
+  const [priority, setPriority] = useState(caseItem.priority ?? 'NORMAL')
+  const [openingDate, setOpeningDate] = useState((caseItem.openingDate ?? '').toString().slice(0, 10))
+  const [agreedFee, setAgreedFee] = useState(caseItem.agreedFee ?? '')
+  const [description, setDescription] = useState(caseItem.description ?? '')
+
+  const [governorateId, setGovernorateId] = useState(caseItem.governorateId ?? '')
+  const [defaultCourtId, setDefaultCourtId] = useState(caseItem.defaultCourtId ?? '')
+  const [circuitId, setCircuitId] = useState(caseItem.circuitId ?? '')
+  const [primaryLawyerId, setPrimaryLawyerId] = useState(caseItem.primaryLawyerId ?? '')
+
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+
+  const { data: caseTypes } = useFetch(() => referenceApi.caseTypes(), [])
+  const { data: governorates } = useFetch(() => referenceApi.governorates(), [])
+  const { data: courts } = useFetch(
+    () => (governorateId ? referenceApi.courtsByGovernorate(governorateId) : Promise.resolve([])),
+    [governorateId]
+  )
+  const { data: circuits } = useFetch(
+    () => (defaultCourtId ? referenceApi.circuitsByCourt(defaultCourtId) : Promise.resolve([])),
+    [defaultCourtId]
+  )
+
+  const selectableLawyers = useMemo(
+    () => (employees ?? []).filter((e) => isLawyer(e) && (!caseTypeId || e.specializations.includes(caseTypeId))),
+    [employees, caseTypeId]
+  )
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError(null)
+    setSaving(true)
+    try {
+      await casesApi.update(caseItem.id, {
+        caseNumber,
+        title: title || undefined,
+        courtCaseNumber: courtCaseNumber || undefined,
+        courtCaseYear: courtCaseYear ? Number(courtCaseYear) : undefined,
+        caseTypeId: caseTypeId || undefined,
+        priority: priority || undefined,
+        governorateId: governorateId || undefined,
+        defaultCourtId: defaultCourtId || undefined,
+        circuitId: circuitId || undefined,
+        primaryLawyerId: primaryLawyerId || undefined,
+        openingDate: openingDate || undefined,
+        agreedFee: agreedFee ? Number(agreedFee) : undefined,
+        description: description || undefined,
+      })
+      onSaved()
+    } catch (err) {
+      setError(err.message ?? 'تعذر حفظ التعديلات')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
-    <FormModal
-      open={open}
-      onClose={onClose}
-      title="تعديل القضية"
-      fields={editFields}
-      initialValues={initialValues}
-      submitLabel="حفظ التعديلات"
-      onSubmit={async (values) => {
-        await casesApi.update(caseItem.id, {
-          caseNumber: values.caseNumber,
-          title: values.title || undefined,
-          courtCaseNumber: values.courtCaseNumber || undefined,
-          courtCaseYear: values.courtCaseYear ? Number(values.courtCaseYear) : undefined,
-          priority: values.priority || undefined,
-          openingDate: values.openingDate || undefined,
-          agreedFee: values.agreedFee ? Number(values.agreedFee) : undefined,
-          description: values.description || undefined,
-        })
-        onSaved()
-      }}
-    />
+    <Modal open={open} onClose={onClose} title="تعديل القضية" size="lg">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>رقم القضية</label>
+            <input required value={caseNumber} onChange={(e) => setCaseNumber(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>عنوان القضية</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>نوع القضية</label>
+            <select
+              value={caseTypeId}
+              onChange={(e) => { setCaseTypeId(e.target.value); setPrimaryLawyerId('') }}
+              className={inputClass}
+            >
+              <option value="">اختر...</option>
+              {(caseTypes ?? []).map((t) => <option key={t.id} value={t.id}>{t.labelAr}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>الأولوية</label>
+            <select value={priority} onChange={(e) => setPriority(e.target.value)} className={inputClass}>
+              {Object.entries(CASE_PRIORITY).map(([value, v]) => <option key={value} value={value}>{v.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>تاريخ الفتح</label>
+            <input type="date" value={openingDate} onChange={(e) => setOpeningDate(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>الأتعاب المتفق عليها (ج.م)</label>
+            <input type="number" min="0" step="0.01" value={agreedFee} onChange={(e) => setAgreedFee(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>رقم القضية لدى المحكمة</label>
+            <input value={courtCaseNumber} onChange={(e) => setCourtCaseNumber(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>سنة القضية</label>
+            <input type="number" min="1900" value={courtCaseYear} onChange={(e) => setCourtCaseYear(e.target.value)} className={inputClass} />
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>وصف القضية</label>
+          <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
+        </div>
+
+        <div className="rounded-xl border border-paper-line p-3 bg-paper-soft/60">
+          <p className="text-xs font-semibold text-ink-600 mb-2">المحكمة — مطلوبة قبل تفعيل القضية</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <select
+              value={governorateId}
+              onChange={(e) => { setGovernorateId(e.target.value); setDefaultCourtId(''); setCircuitId('') }}
+              className={inputClass}
+            >
+              <option value="">اختر المحافظة...</option>
+              {(governorates ?? []).map((g) => <option key={g.id} value={g.id}>{g.nameAr}</option>)}
+            </select>
+            <select
+              value={defaultCourtId}
+              onChange={(e) => { setDefaultCourtId(e.target.value); setCircuitId('') }}
+              disabled={!governorateId}
+              className={inputClass}
+            >
+              <option value="">{governorateId ? 'اختر المحكمة...' : 'اختر المحافظة أولاً'}</option>
+              {(courts ?? []).map((c) => <option key={c.id} value={c.id}>{c.nameAr}</option>)}
+            </select>
+            <select value={circuitId} onChange={(e) => setCircuitId(e.target.value)} disabled={!defaultCourtId} className={inputClass}>
+              <option value="">{defaultCourtId ? 'الدائرة (اختياري)' : 'اختر المحكمة أولاً'}</option>
+              {(circuits ?? []).map((c) => <option key={c.id} value={c.id}>{c.nameAr}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-paper-line p-3 bg-paper-soft/60">
+          <p className="text-xs font-semibold text-ink-600 mb-2">المحامي المسؤول — مطلوب قبل تفعيل القضية</p>
+          <select value={primaryLawyerId} onChange={(e) => setPrimaryLawyerId(e.target.value)} disabled={!caseTypeId} className={inputClass}>
+            <option value="">{caseTypeId ? 'اختر محامياً...' : 'اختر نوع القضية أولاً'}</option>
+            {selectableLawyers.map((e) => <option key={e.user.id} value={e.user.id}>{e.user.fullName ?? e.user.email}</option>)}
+          </select>
+          {caseTypeId && selectableLawyers.length === 0 && (
+            <p className="text-xs text-brass-700 bg-brass-100 rounded-lg px-3 py-2 mt-2">
+              لا يوجد محامون بتخصص مطابق لنوع القضية المختار.
+            </p>
+          )}
+        </div>
+
+        {error && <p className="text-sm text-rust-600 bg-rust-100 rounded-lg px-3 py-2">{error}</p>}
+
+        <div className="flex items-center gap-3 justify-end pt-1">
+          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+          <Button type="submit" disabled={saving}>{saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}</Button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -823,6 +969,7 @@ export default function CaseDetail() {
           open={showEdit}
           onClose={() => setShowEdit(false)}
           caseItem={caseItem}
+          employees={employees}
           onSaved={() => {
             setShowEdit(false)
             reload()

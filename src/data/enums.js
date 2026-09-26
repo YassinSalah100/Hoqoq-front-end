@@ -141,6 +141,22 @@ export function groupCaseCapabilities() {
     .sort((a, b) => a.label.localeCompare(b.label, 'ar'))
 }
 
+// Summarizes a *granted* set of capability codes (a case team member's
+// `roleOnCase`, split on commas) into one badge per category with a count —
+// e.g. "الجلسات · 3" — instead of one pill per raw code. A member with
+// access across 6+ categories previously rendered as a wall of a dozen-plus
+// tiny badges; this reads as a handful of clean, scannable ones instead.
+export function summarizeGrantedCapabilities(codes) {
+  const counts = {}
+  ;(codes ?? []).forEach((code) => {
+    const group = code.split('.')[0]
+    counts[group] = (counts[group] ?? 0) + 1
+  })
+  return Object.entries(counts)
+    .map(([group, count]) => ({ label: CAPABILITY_GROUP_LABELS[group] ?? group, count }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'ar'))
+}
+
 export const EMPLOYEE_POSITION = {
   MANAGING_PARTNER: 'شريك مدير',
   PARTNER: 'شريك',
