@@ -212,6 +212,14 @@ export const tenantsApi = {
   getMyFirm: () => get('/tenants/my-firm'),
   updateMyFirm: (data) => patch('/tenants/my-firm', data), // UpdateTenantDto: name, address, contactEmail — nothing else
   uploadLogo: (formData) => request('/tenants/my-firm/logo', { method: 'POST', body: formData, isForm: true }),
+  // `tenant.logoUrl` is an opaque internal storage key now (e.g.
+  // "branding/tenants/<id>/logo-<hex>"), not a servable path — the only way
+  // to actually get the image is these authenticated download endpoints.
+  // Feed the returned URL through fetchAuthedImageUrl() (below), not
+  // resolveAssetUrl() or a plain <img src>, since both require a Bearer
+  // token an <img> tag can't send.
+  myFirmLogoUrl: () => `${API_BASE}/tenants/my-firm/logo`,
+  firmLogoUrl: (id) => `${API_BASE}/tenants/${id}/logo`, // Super Admin only
 }
 
 // ---- Subscriptions ----
@@ -348,6 +356,25 @@ export const settingsApi = {
   list: () => get('/settings'),
   update: (key, data) => patch(`/settings/${key}`, data),
   remove: (key) => del(`/settings/${key}`),
+}
+
+// ---- Helper: load an authenticated image as a displayable blob: URL ----
+// Plain <img src="..."> can't send an Authorization header, and these logo
+// endpoints require one — fetch the bytes ourselves and hand back an object
+// URL the caller can drop straight into <img src>. Returns null on any
+// failure (no logo uploaded yet, 403, network error, ...) so callers can
+// fall back to a placeholder instead of showing a broken image icon.
+export async function fetchAuthedImageUrl(url) {
+  try {
+    const res = await fetch(url, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    })
+    if (!res.ok) return null
+    const blob = await res.blob()
+    return URL.createObjectURL(blob)
+  } catch {
+    return null
+  }
 }
 
 // ---- Helper: download a file behind auth to the browser ----

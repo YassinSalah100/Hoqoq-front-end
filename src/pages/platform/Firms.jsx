@@ -18,9 +18,10 @@ import SearchInput from '../../components/ui/SearchInput'
 import EmptyState from '../../components/ui/EmptyState'
 import StatCard from '../../components/ui/StatCard'
 import EnumBadge from '../../components/ui/EnumBadge'
+import AuthedImage from '../../components/ui/AuthedImage'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
 import FormModal from '../../components/ui/FormModal'
-import { tenantsApi, usersApi, subscriptionsApi, permissionsApi, resolveAssetUrl } from '../../lib/api'
+import { tenantsApi, usersApi, subscriptionsApi, permissionsApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { ACCOUNT_TYPE, JOB_CLASSIFICATION, TENANT_STATUS, USER_STATUS } from '../../data/enums'
 
@@ -53,7 +54,7 @@ function buildFirmFields(plans) {
       label: 'خطة الاشتراك',
       type: 'select',
       required: true,
-      options: (plans ?? []).map((p) => ({ value: p.id, label: `${p.name} — ${Number(p.priceMonthly).toLocaleString('ar')} ر.س/شهر` })),
+      options: (plans ?? []).map((p) => ({ value: p.id, label: `${p.name} — ${Number(p.priceMonthly).toLocaleString('ar')} ج.م/شهر` })),
     },
     {
       name: 'billingCycle',
@@ -251,11 +252,13 @@ export default function Firms() {
                 <div className="flex items-start justify-between gap-3 p-5 border-b border-paper-line">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-ink-800 text-white shrink-0 flex items-center justify-center overflow-hidden">
-                      {firm.logoUrl ? (
-                        <img src={resolveAssetUrl(firm.logoUrl)} alt={firm.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Building2 size={18} />
-                      )}
+                      <AuthedImage
+                        hasSource={Boolean(firm.logoUrl)}
+                        src={firm.logoUrl ? `${tenantsApi.firmLogoUrl(firm.id)}?v=${encodeURIComponent(firm.logoUrl)}` : null}
+                        alt={firm.name}
+                        className="w-full h-full object-cover"
+                        fallback={<Building2 size={18} />}
+                      />
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-ink-800 truncate">{firm.name}</p>
@@ -406,7 +409,7 @@ export default function Firms() {
             required: true,
             options: (plans ?? []).map((p) => ({
               value: p.id,
-              label: `${p.name} — ${Number(p.priceMonthly).toLocaleString('ar')} ر.س/شهر`,
+              label: `${p.name} — ${Number(p.priceMonthly).toLocaleString('ar')} ج.م/شهر`,
             })),
           },
           {

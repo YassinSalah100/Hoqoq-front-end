@@ -55,7 +55,7 @@ export default function Subscription() {
             <div className="min-w-0">
               <p className="text-sm font-medium">{plan.name}</p>
               <p className="text-xs opacity-80">
-                {Number(subscription.billingCycle === 'YEARLY' ? plan.priceYearly : plan.priceMonthly).toLocaleString('ar')} ر.س /{' '}
+                {Number(subscription.billingCycle === 'YEARLY' ? plan.priceYearly : plan.priceMonthly).toLocaleString('ar')} ج.م /{' '}
                 {BILLING_CYCLE_LABELS[subscription.billingCycle] ?? subscription.billingCycle}
               </p>
             </div>

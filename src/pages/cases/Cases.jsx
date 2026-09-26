@@ -223,7 +223,7 @@ function NewCaseModal({ open, onClose, onCreated, caseTypes, employees }) {
               <input type="date" value={openingDate} onChange={(e) => setOpeningDate(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>الأتعاب المتفق عليها (ر.س)</label>
+              <label className={labelClass}>الأتعاب المتفق عليها (ج.م)</label>
               <input type="number" min="0" step="0.01" value={agreedFee} onChange={(e) => setAgreedFee(e.target.value)} className={inputClass} />
             </div>
             <div>

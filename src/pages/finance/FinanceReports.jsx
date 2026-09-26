@@ -22,7 +22,7 @@ const TABS = [
 const STATUS_COLORS = { PAID: '#0B6E4F', PARTIAL: '#B98B34', UNPAID: '#8C2F39' }
 
 function sar(n) {
-  return `${Number(n ?? 0).toLocaleString('ar')} ر.س`
+  return `${Number(n ?? 0).toLocaleString('ar')} ج.م`
 }
 
 function CasesTab() {

@@ -24,7 +24,7 @@ const fieldInputClass =
   'w-full px-3 py-2 rounded-lg border border-paper-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brass-500/30 focus:border-brass-500'
 
 function sar(n) {
-  return `${Number(n ?? 0).toLocaleString('ar')} ر.س`
+  return `${Number(n ?? 0).toLocaleString('ar')} ج.م`
 }
 
 function todayStr() {
@@ -67,7 +67,7 @@ function RecordPaymentForm({ caseId, remaining, onDone, onCancel }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4 rounded-xl bg-paper-soft border border-paper-line mb-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-ink-700">المبلغ (ر.س)</label>
+          <label className="text-sm font-medium text-ink-700">المبلغ (ج.م)</label>
           <input
             type="number"
             min="0.01"

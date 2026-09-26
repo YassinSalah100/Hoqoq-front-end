@@ -53,7 +53,7 @@ function formatSize(bytes = 0) {
 }
 
 function sar(n) {
-  return `${Number(n ?? 0).toLocaleString('ar')} ر.س`
+  return `${Number(n ?? 0).toLocaleString('ar')} ج.م`
 }
 
 // Case "team" is no longer a tiered assignment (LEAD/SUPPORT) — it's a flat
@@ -606,7 +606,7 @@ function FinanceTab({ caseId }) {
   const { data, loading, error, reload } = useFetch(() => financeApi.getCaseFinance(caseId), [caseId])
 
   const createFields = [
-    { name: 'amount', label: 'المبلغ (ر.س)', type: 'number', required: true },
+    { name: 'amount', label: 'المبلغ (ج.م)', type: 'number', required: true },
     { name: 'paidAt', label: 'تاريخ الدفع', type: 'date', required: true },
     { name: 'method', label: 'طريقة الدفع', type: 'select', required: true, options: Object.entries(PAYMENT_METHOD).map(([value, label]) => ({ value, label })) },
     { name: 'reference', label: 'المرجع' },

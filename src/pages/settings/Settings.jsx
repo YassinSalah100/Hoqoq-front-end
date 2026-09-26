@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom'
 import { AlertCircle, CheckCircle2, Building2, Upload } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
+import AuthedImage from '../../components/ui/AuthedImage'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
-import { tenantsApi, authApi, resolveAssetUrl } from '../../lib/api'
+import { tenantsApi, authApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 
 const SECTIONS = [
@@ -70,11 +71,16 @@ function FirmLogoUploader({ logoUrl, onUploaded }) {
   return (
     <div className="flex items-center gap-4 mb-6 pb-6 border-b border-paper-line">
       <div className="w-20 h-20 rounded-xl border border-paper-line bg-paper-soft flex items-center justify-center overflow-hidden shrink-0">
-        {logoUrl ? (
-          <img src={resolveAssetUrl(logoUrl)} alt="شعار المكتب" className="w-full h-full object-contain" />
-        ) : (
-          <Building2 size={28} className="text-ink-300" />
-        )}
+        <AuthedImage
+          hasSource={Boolean(logoUrl)}
+          // logoUrl is an opaque storage key, not a path — the endpoint
+          // itself never changes, so it's appended as a cache-busting query
+          // param to force a re-fetch whenever a new logo is uploaded.
+          src={logoUrl ? `${tenantsApi.myFirmLogoUrl()}?v=${encodeURIComponent(logoUrl)}` : null}
+          alt="شعار المكتب"
+          className="w-full h-full object-contain"
+          fallback={<Building2 size={28} className="text-ink-300" />}
+        />
       </div>
       <div>
         <p className="text-sm font-medium text-ink-700 mb-1">شعار المكتب</p>

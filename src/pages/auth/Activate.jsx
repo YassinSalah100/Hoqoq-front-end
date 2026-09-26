@@ -57,8 +57,8 @@ export default function Activate() {
     e.preventDefault()
     setError(null)
 
-    if (newPassword.length < 12) {
-      setError('كلمة المرور يجب أن تكون 12 حرفاً على الأقل')
+    if (newPassword.length < 7) {
+      setError('كلمة المرور يجب أن تكون 7 أحرف على الأقل')
       return
     }
     if (newPassword !== confirm) {
@@ -117,13 +117,13 @@ export default function Activate() {
                 <input
                   type="password"
                   required
-                  minLength={12}
+                  minLength={7}
                   dir="ltr"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className={inputClass}
                 />
-                <p className="text-xs text-ink-300">12 حرفاً على الأقل</p>
+                <p className="text-xs text-ink-300">7 أحرف على الأقل</p>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -142,7 +142,7 @@ export default function Activate() {
                 <div className="rounded-xl border border-paper-line p-4 bg-paper-soft/60">
                   <div className="flex items-center gap-2 mb-3">
                     <ShieldCheck size={15} className="text-brass-600" />
-                    <p className="text-sm font-medium text-ink-700">إعداد المصادقة الثنائية (إلزامي لملّاك المكاتب)</p>
+                    <p className="text-sm font-medium text-ink-700">إعداد المصادقة الثنائية</p>
                   </div>
                   <p className="text-xs text-ink-500 mb-3">
                     امسح الرمز التالي باستخدام تطبيق مصادقة (مثل Google Authenticator)، ثم أدخل الرمز المكوّن من 6 أرقام لتأكيد الإعداد.
