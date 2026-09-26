@@ -45,7 +45,7 @@ function toDatetimeLocal(value) {
 // with a governorate always require their hearings' courts to belong to it,
 // see HearingsService.validateReferences) so the user isn't re-picking it
 // for every hearing on the same case.
-function CreateHearingModal({ open, onClose, cases, hearingTypes, employees, onCreated }) {
+function CreateHearingModal({ open, onClose, cases, hearingTypes, hearingTypesError, onRetryHearingTypes, employees, onCreated }) {
   const casesList = cases ?? []
   const [caseId, setCaseId] = useState('')
   const [governorateId, setGovernorateId] = useState('')
@@ -143,12 +143,19 @@ function CreateHearingModal({ open, onClose, cases, hearingTypes, employees, onC
 
           <div className="flex flex-col gap-1.5">
             <label className={labelClass}>نوع الجلسة</label>
-            <select required value={hearingTypeId} onChange={(e) => setHearingTypeId(e.target.value)} className={inputClass}>
-              <option value="" disabled>اختر...</option>
-              {(hearingTypes ?? []).map((t) => (
-                <option key={t.id} value={t.id}>{t.labelAr}</option>
-              ))}
-            </select>
+            {hearingTypesError || (Array.isArray(hearingTypes) && hearingTypes.length === 0) ? (
+              <ErrorBlock
+                error={hearingTypesError ?? { message: 'تعذر تحميل أنواع الجلسات' }}
+                onRetry={onRetryHearingTypes}
+              />
+            ) : (
+              <select required value={hearingTypeId} onChange={(e) => setHearingTypeId(e.target.value)} className={inputClass}>
+                <option value="" disabled>اختر...</option>
+                {(hearingTypes ?? []).map((t) => (
+                  <option key={t.id} value={t.id}>{t.labelAr}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -233,7 +240,7 @@ function CreateHearingModal({ open, onClose, cases, hearingTypes, employees, onC
 
         <div className="flex items-center gap-2 justify-end pt-3 mt-1 border-t border-paper-line">
           <Button type="button" variant="secondary" onClick={handleClose}>إلغاء</Button>
-          <Button type="submit" disabled={saving}>{saving ? 'جاري الحفظ...' : 'جدولة الجلسة'}</Button>
+          <Button type="submit" disabled={saving || !hearingTypeId}>{saving ? 'جاري الحفظ...' : 'جدولة الجلسة'}</Button>
         </div>
       </form>
     </Modal>
@@ -249,7 +256,7 @@ export default function Hearings() {
 
   const { data, loading, error, reload } = useFetch(() => hearingsApi.list(), [])
   const { data: casesAll } = useFetch(() => casesApi.list(), [])
-  const { data: hearingTypes } = useFetch(() => lookupsApi.list('HEARING_TYPE'), [])
+  const { data: hearingTypes, error: hearingTypesError, reload: reloadHearingTypes } = useFetch(() => lookupsApi.list('HEARING_TYPE'), [])
   const { data: employeesAll } = useFetch(() => employeesApi.list(), [])
 
   const rows = useMemo(() => (Array.isArray(data) ? data : data?.items ?? []), [data])
@@ -344,6 +351,8 @@ export default function Hearings() {
           onClose={() => setShowCreate(false)}
           cases={casesAll}
           hearingTypes={hearingTypes}
+          hearingTypesError={hearingTypesError}
+          onRetryHearingTypes={reloadHearingTypes}
           employees={employeesAll}
           onCreated={reload}
         />
