@@ -23,6 +23,7 @@ import Employees from './pages/hr/Employees'
 import Roles from './pages/hr/Roles'
 import Users from './pages/platform/Users'
 import Firms from './pages/platform/Firms'
+import FirmDetail from './pages/platform/FirmDetail'
 import Settings from './pages/settings/Settings'
 import Subscription from './pages/settings/Subscription'
 import AuditLog from './pages/settings/AuditLog'
@@ -52,6 +53,7 @@ function Shell() {
 
         {/* Platform administration (Super Admin) */}
         <Route path="firms" element={<Firms />} />
+        <Route path="firms/:id" element={<FirmDetail />} />
         <Route path="users" element={<Users />} />
 
         {/* Firm workspace */}
