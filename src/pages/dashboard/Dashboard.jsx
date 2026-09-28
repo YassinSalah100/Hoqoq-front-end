@@ -12,7 +12,7 @@ import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
 import { hasPermission } from '../../data/auth'
 
-const DONUT_COLORS = ['#0B6E4F', '#B98B34']
+const DONUT_COLORS = ['#B98B33', '#5E4D34']
 
 export default function Dashboard() {
   const { currentUser } = useAuth()
@@ -71,7 +71,7 @@ export default function Dashboard() {
                       <Cell key={entry.name} fill={DONUT_COLORS[i]} stroke="#fff" strokeWidth={2} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #E5E2D9', fontSize: 11 }} />
+                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #E3DDCC', fontSize: 11 }} />
                 </PieChart>
               </ResponsiveContainer>
               <ul className="flex-1 space-y-2 text-sm">

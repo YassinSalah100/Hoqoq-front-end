@@ -6,6 +6,8 @@ import Login from './pages/auth/Login'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import Activate from './pages/auth/Activate'
+import Privacy from './pages/legal/Privacy'
+import Terms from './pages/legal/Terms'
 import Dashboard from './pages/dashboard/Dashboard'
 import Cases from './pages/cases/Cases'
 import CaseDetail from './pages/cases/CaseDetail'
@@ -77,6 +79,8 @@ function Shell() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/activate" element={<Activate />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

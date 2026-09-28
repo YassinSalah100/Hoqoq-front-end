@@ -4,34 +4,42 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Warm brown scale anchored on the brand brown (#2B2010 = 800), so
+        // every existing ink-* usage (text, sidebar, headers) follows the
+        // logo palette instead of the old navy blue.
         ink: {
-          900: '#0B192F',
-          800: '#10233F',
-          600: '#233A5C',
-          500: '#374F73',
-          400: '#5A7093',
-          300: '#8B9EB7',
-          200: '#C4CDDB',
-          100: '#E4E8EF',
-          50: '#F2F4F8',
+          900: '#1E160A',
+          800: '#2B2010',
+          600: '#4A3A22',
+          500: '#5E4D34',
+          400: '#7A6A52',
+          300: '#A3947C',
+          200: '#CFC5B3',
+          100: '#EAE4D8',
+          50: '#F5F1E9',
         },
+        // Success states (active / paid / completed). A warm olive rather
+        // than a cool emerald so it sits inside the gold-brown palette while
+        // still reading clearly as "done" next to gold "pending" badges.
         emerald: {
-          700: '#08543C',
-          600: '#0A6046',
-          500: '#0B6E4F',
-          100: '#CDE9DC',
+          700: '#4E5A1C',
+          600: '#5F6C25',
+          500: '#727F30',
+          100: '#EAECD2',
         },
+        // Gold scale anchored on the brand gold (#B98B33 = 500), light gold
+        // (#D9B45E = 400) and tagline gold (#8F6618 = 700).
         brass: {
-          900: '#3D2F0F',
-          800: '#5C4419',
-          700: '#7A5F23',
-          600: '#9A7629',
-          500: '#B98B34',
-          400: '#CBA35C',
-          300: '#DCBE8A',
-          200: '#EAD5AC',
-          100: '#F3E4C2',
-          50: '#FAF3E3',
+          900: '#3D2E10',
+          800: '#5C4418',
+          700: '#8F6618',
+          600: '#A47A26',
+          500: '#B98B33',
+          400: '#D9B45E',
+          300: '#E5CB8E',
+          200: '#EFDDB5',
+          100: '#F6ECD4',
+          50: '#FBF6EA',
         },
         rust: {
           600: '#7A2831',
@@ -39,9 +47,23 @@ export default {
           100: '#EFCFCD',
         },
         paper: {
-          DEFAULT: '#FAFAF8',
-          soft: '#F3F2ED',
-          line: '#E5E2D9',
+          DEFAULT: '#FBFAF6',
+          soft: '#F6F0E2',
+          line: '#E3DDCC',
+        },
+        // Exact brand palette (logo-derived) — kept separate from the
+        // pre-existing ink/brass/paper tokens above rather than merged into
+        // them, since those are close-but-not-identical hexes used across
+        // the rest of the app; `brand-*` is for places that must match the
+        // logo exactly (currently: the login page).
+        brand: {
+          gold: '#B98B33',
+          'gold-light': '#D9B45E',
+          brown: '#2B2010',
+          cream: '#F6F0E2',
+          'cream-light': '#FBFAF6',
+          tagline: '#8F6618',
+          border: '#E3DDCC',
         },
       },
       fontFamily: {
@@ -63,8 +85,8 @@ export default {
         xl: '12px',
       },
       boxShadow: {
-        card: '0 1px 2px rgba(16,35,63,0.06)',
-        pop: '0 8px 24px rgba(16,35,63,0.12)',
+        card: '0 1px 3px rgba(43,32,16,0.08)',
+        pop: '0 8px 24px rgba(43,32,16,0.12)',
       },
     },
   },

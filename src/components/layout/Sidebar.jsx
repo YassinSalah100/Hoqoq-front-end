@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import BrandMark from '../ui/BrandMark'
 import {
   LayoutDashboard,
   Briefcase,
@@ -92,19 +93,12 @@ export default function Sidebar({ user, onLogout, mobileOpen, onCloseMobile }) {
           mobileOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
         } right-0 lg:right-auto`}
       >
-        <div className="h-14 flex items-center justify-between gap-2.5 px-5 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <img
-              src="/logo.png"
-              alt="حقوق"
-              className="w-8 h-8 shrink-0 object-contain transition-transform duration-300 hover:rotate-12"
-            />
-            <div className="min-w-0 leading-tight">
-              <span className="font-display text-lg font-bold block">حقوق</span>
-              <span className="text-[10px] text-ink-300/70 block truncate">
-                {isSuperAdmin(user) ? 'لوحة المشرف' : user?.tenant?.name ?? 'مساحة العمل'}
-              </span>
-            </div>
+        <div className="flex items-start justify-between gap-2.5 px-5 pt-5 pb-4 border-b border-white/10 shrink-0">
+          <div className="min-w-0">
+            <BrandMark size={44} variant="dark" />
+            <span className="mt-3 inline-block max-w-full truncate rounded-md bg-brass-500/15 border border-brass-500/25 px-2 py-0.5 text-[11px] text-brass-300">
+              {isSuperAdmin(user) ? 'لوحة المشرف' : user?.tenant?.name ?? 'مساحة العمل'}
+            </span>
           </div>
           <button onClick={onCloseMobile} className="p-1 rounded-lg text-ink-300 hover:text-white hover:bg-white/10 lg:hidden shrink-0">
             <X size={16} />

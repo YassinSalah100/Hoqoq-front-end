@@ -19,7 +19,7 @@ const TABS = [
 ]
 
 // Matches CASE_FINANCE_STATUS semantics (paid=emerald, partial=brass, unpaid=rust).
-const STATUS_COLORS = { PAID: '#0B6E4F', PARTIAL: '#B98B34', UNPAID: '#8C2F39' }
+const STATUS_COLORS = { PAID: '#727F30', PARTIAL: '#B98B33', UNPAID: '#8C2F39' }
 
 function sar(n) {
   return `${Number(n ?? 0).toLocaleString('ar')} ج.م`
@@ -100,7 +100,7 @@ function FinanceTab() {
                       <Cell key={entry.key} fill={STATUS_COLORS[entry.key]} stroke="#fff" strokeWidth={2} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #E5E2D9', fontSize: 11 }} />
+                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #E3DDCC', fontSize: 11 }} />
                 </PieChart>
               </ResponsiveContainer>
               <ul className="flex-1 space-y-2 text-sm">
@@ -125,13 +125,13 @@ function FinanceTab() {
           {topOutstanding.length ? (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={topOutstanding} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E2D9" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11, fill: '#8B9EB7' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="caseNumber" width={100} tick={{ fontSize: 11, fill: '#374F73' }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => sar(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E5E2D9', fontSize: 11 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E3DDCC" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: '#A3947C' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="caseNumber" width={100} tick={{ fontSize: 11, fill: '#5E4D34' }} axisLine={false} tickLine={false} />
+                <Tooltip formatter={(v) => sar(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E3DDCC', fontSize: 11 }} />
                 <Bar dataKey="remaining" radius={[0, 4, 4, 0]} maxBarSize={18}>
                   {topOutstanding.map((_, i) => (
-                    <Cell key={i} fill={i === 0 ? '#10233F' : '#B98B34'} />
+                    <Cell key={i} fill={i === 0 ? '#2B2010' : '#B98B33'} />
                   ))}
                 </Bar>
               </BarChart>

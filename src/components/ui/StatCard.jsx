@@ -10,9 +10,8 @@ export default function StatCard({ label, value, trend, icon, accent = 'gold' })
   const Icon = Icons[icon] ?? Icons.Circle
   const style = ACCENTS[accent] ?? ACCENTS.gold
   return (
-    <div className="bg-white rounded-xl p-6 shadow-card border border-paper-line relative overflow-hidden">
-      <div className="arabesque-watermark" />
-      <div className="relative flex justify-between items-start">
+    <div className="bg-white rounded-xl p-6 shadow-card border border-paper-line">
+      <div className="flex justify-between items-start">
         <div>
           <p className="text-sm text-ink-400 mb-1">{label}</p>
           <p className="text-4xl font-bold text-ink-800 font-mono">{value}</p>
