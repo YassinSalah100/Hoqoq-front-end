@@ -11,6 +11,47 @@ const FEATURES = [
   { icon: Sparkles, label: 'مساعد ذكي', desc: 'ملخصات وتنبيهات تلقائية' },
 ]
 
+// Vendor credit. The supplied file is a 1254px square JPEG with the "E" mark
+// at roughly x 430–826, y 216–716 and a wordmark underneath. Only the mark
+// is cropped out (via background sizing) and the name is set as real text so
+// it stays sharp at this size. mix-blend-multiply drops the JPEG's off-white
+// background so no box shows around the mark. Keeps Ethereal's own colors —
+// it's their mark, not part of the حقوق palette.
+function PoweredByEthereal() {
+  return (
+    <div className="mt-12 flex flex-col items-center gap-4">
+      <div className="flex items-center gap-4 w-full">
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent to-brand-border" />
+        <span dir="ltr" className="text-[10px] font-medium uppercase tracking-[0.32em] text-brand-brown/40">
+          Powered by
+        </span>
+        <span className="h-px flex-1 bg-gradient-to-l from-transparent to-brand-border" />
+      </div>
+
+      <div dir="ltr" className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="block shrink-0 mix-blend-multiply"
+          style={{
+            width: 28,
+            height: 36,
+            backgroundImage: 'url(/brand/ethreal.jpeg)',
+            backgroundSize: '85px 85px',
+            backgroundPosition: '-29px -14px',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+        <div className="leading-none">
+          <p className="text-[18px] font-semibold tracking-tight text-[#0E1F3D]">Ethereal</p>
+          <p className="text-[9.5px] font-medium uppercase tracking-[0.18em] text-[#13A08F] mt-1.5">
+            Software Solutions
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // This project's Tailwind text scale is compact (text-sm = 11.5px), so the
 // login form uses explicit pixel sizes to stay comfortably readable.
 const inputClass =
@@ -205,19 +246,16 @@ export default function Login() {
               اتصال مشفّر — بياناتك محمية
             </div>
 
-            <div className="mt-10 pt-6 border-t border-brand-border text-center text-[14px] text-brand-brown/70">
-              ليس لديك حساب؟{' '}
-              <a href="mailto:sales@hoqooq.app" className="text-brand-gold hover:text-brand-tagline font-semibold">
-                اطلب الدخول لمكتبك
-              </a>
-            </div>
+            <PoweredByEthereal />
           </div>
         </div>
 
-        <footer className="px-6 py-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-brand-brown/50">
-          <Link to="/privacy" className="hover:text-brand-gold">سياسة الخصوصية</Link>
-          <Link to="/terms" className="hover:text-brand-gold">شروط الاستخدام</Link>
-          <a href="mailto:support@hoqooq.app" className="hover:text-brand-gold">الدعم الفني</a>
+        <footer className="px-6 pb-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-brand-brown/50">
+            <Link to="/privacy" className="hover:text-brand-gold">سياسة الخصوصية</Link>
+            <Link to="/terms" className="hover:text-brand-gold">شروط الاستخدام</Link>
+            <a href="mailto:support@hoqooq.app" className="hover:text-brand-gold">الدعم الفني</a>
+          </div>
         </footer>
       </div>
 
