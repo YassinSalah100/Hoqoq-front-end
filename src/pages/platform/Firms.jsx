@@ -528,11 +528,21 @@ export default function Firms() {
         submitLabel="إنشاء المكتب"
         initialValues={{ planId: plans?.[0]?.id, billingCycle: 'MONTHLY' }}
         onSubmit={async (values) => {
-          await tenantsApi.provisionFirm({
-            ...values,
-            adminJobClassification: 'OTHER',
-            permissionKeys: ownerPermissionKeys,
-          })
+          try {
+            await tenantsApi.provisionFirm({
+              ...values,
+              adminJobClassification: 'OTHER',
+              permissionKeys: ownerPermissionKeys,
+            })
+          } catch (err) {
+            if (err.message === 'A firm with this name already exists') {
+              throw new Error('يوجد مكتب مسجّل بهذا الاسم بالفعل، الرجاء اختيار اسم آخر')
+            }
+            if (err.message === 'Firm Admin email already exists') {
+              throw new Error('هذا البريد الإلكتروني مستخدم بالفعل لحساب آخر')
+            }
+            throw err
+          }
           reload()
           reloadUsers()
         }}
