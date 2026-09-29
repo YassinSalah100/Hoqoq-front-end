@@ -383,7 +383,7 @@ export default function Cases() {
 
   const { data: cases, loading, error, reload } = useFetch(() => casesApi.list(), [])
   const { data: caseTypes } = useFetch(() => referenceApi.caseTypes(), [])
-  const { data: employees } = useFetch(() => employeesApi.list(), [])
+  const { data: employees } = useFetch(() => employeesApi.directory(), [])
   const rows = useMemo(() => (Array.isArray(cases) ? cases : cases?.items ?? []), [cases])
   const canCreateCase = hasPermission(currentUser, 'case.create')
 

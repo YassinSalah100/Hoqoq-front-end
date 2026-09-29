@@ -258,6 +258,10 @@ export const employeesApi = {
   // permissionKeys (required); phone, department, specializations (optional).
   onboard: (data) => post('/employees/onboard', data),
   list: (filters) => get(`/employees${filters ? `?${new URLSearchParams(filters)}` : ''}`),
+  // Names + specializations only, readable by any firm member — use this for
+  // assignment pickers (lead lawyer, hearing/task assignee) instead of list(),
+  // which needs the HR permission employee.read.
+  directory: () => get('/employees/directory'),
   get: (id) => get(`/employees/${id}`),
   update: (id, data) => patch(`/employees/${id}`, data), // position, department, hireDate, specializations
   remove: (id) => del(`/employees/${id}`),

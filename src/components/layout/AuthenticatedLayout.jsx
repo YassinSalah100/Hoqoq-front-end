@@ -28,8 +28,16 @@ export default function AuthenticatedLayout({ user, onLogout }) {
   // The Super Admin operates the platform — he has no firm and no subscription
   // of his own, so the firm-facing trial banner must never show for him.
   const { data: firm } = useFetch(() => (isSA ? Promise.resolve(null) : tenantsApi.getMyFirm()), [isSA])
+  // getMyFirm() returns every subscription row (relation: subscriptions,
+  // subscriptions.plan); the live one is whichever wasn't superseded/archived
+  // by a later plan change. Once the Super Admin activates a real plan for
+  // the firm, that row's status flips to ACTIVE and the trial banner (a
+  // synthetic 14-day countdown from firm.createdAt) must stop showing —
+  // it has nothing to do with a firm that already has a paid subscription.
+  const currentSubscription = firm?.subscriptions?.find((s) => !s.supersededAt && !s.isArchived) ?? null
+  const hasActivePlan = currentSubscription?.status === 'ACTIVE'
   const daysLeft = trialDaysLeft(firm?.createdAt)
-  const showTrialBanner = showBanner && !isSA && daysLeft !== null
+  const showTrialBanner = showBanner && !isSA && !hasActivePlan && daysLeft !== null
 
   return (
     <div className="flex h-screen bg-paper" dir="rtl">

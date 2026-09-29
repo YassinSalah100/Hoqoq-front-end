@@ -12,7 +12,6 @@ const GROUP_LABELS = {
   case: 'القضايا',
   hearing: 'الجلسات',
   service: 'إعلانات التبليغ',
-  meeting: 'الاجتماعات',
   document: 'المستندات',
   task: 'المهام',
   client: 'الموكلين',
@@ -24,7 +23,6 @@ const GROUP_LABELS = {
   report: 'التقارير',
   dashboard: 'لوحة التحكم',
   firm: 'إعدادات المكتب',
-  reference: 'البيانات المرجعية',
   audit: 'سجل التدقيق',
   platform: 'صلاحيات المنصة',
   system: 'صلاحيات النظام',
@@ -50,11 +48,6 @@ const CODE_LABELS = {
   'service.edit': 'تعديل التبليغ',
   'service.assign': 'إسناد التبليغ',
   'service.complete': 'إنهاء التبليغ',
-  'meeting.create': 'إضافة اجتماع',
-  'meeting.view': 'عرض الاجتماعات',
-  'meeting.edit': 'تعديل الاجتماع',
-  'meeting.assign': 'إسناد الاجتماع',
-  'meeting.complete': 'إنهاء الاجتماع',
   'document.upload': 'رفع مستندات',
   'document.view': 'عرض المستندات',
   'document.download': 'تحميل المستندات',
@@ -85,7 +78,6 @@ const CODE_LABELS = {
   'dashboard.read': 'عرض لوحة التحكم',
   'firm.profile.manage': 'تعديل بيانات المكتب',
   'firm.profile.read': 'عرض بيانات المكتب',
-  'reference.read': 'عرض البيانات المرجعية',
   'audit.read': 'عرض سجل التدقيق',
 }
 
@@ -103,11 +95,19 @@ export function permissionGroupLabel(code) {
   return GROUP_LABELS[code.split('.')[0]] ?? code.split('.')[0]
 }
 
+// Codes the backend still defines but that aren't offered in the permission
+// pickers: the meetings feature isn't part of the product's UI, and
+// reference.read no longer gates anything (reference/lookup lists are
+// readable by every signed-in account).
+function isHiddenCode(code) {
+  return code.startsWith('meeting.') || code === 'reference.read'
+}
+
 // Groups + sorts a flat code list for a two-column checkbox layout, e.g.
 // [{ group: 'case', groupLabel: 'القضايا', items: [{ code, label }] }, ...]
 export function groupPermissionCodes(codes) {
   const map = {}
-  ;(codes ?? []).forEach((code) => {
+  ;(codes ?? []).filter((code) => !isHiddenCode(code)).forEach((code) => {
     const group = code.split('.')[0]
     map[group] = map[group] ?? []
     map[group].push({ code, label: permissionLabel(code) })

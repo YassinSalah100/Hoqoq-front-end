@@ -939,7 +939,7 @@ export default function CaseDetail() {
   const [showEdit, setShowEdit] = useState(false)
 
   const { data: caseItem, loading, error, reload } = useFetch(() => casesApi.get(id), [id])
-  const { data: employees } = useFetch(() => employeesApi.list(), [])
+  const { data: employees } = useFetch(() => employeesApi.directory(), [])
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => t.value !== 'finance' || hasPermission(currentUser, 'finance.case.view')),

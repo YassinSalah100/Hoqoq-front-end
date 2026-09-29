@@ -83,8 +83,11 @@ export default function Login() {
       const { user } = await login(email, password, mfaCode)
       navigate(getDefaultRoute(user))
     } catch (err) {
-      // BR-001: never reveal which field was wrong.
-      if (err.status === 401 || err.status === 400 || err.status === 404) {
+      // BR-001: never reveal which field was wrong — except FIRM_INACTIVE,
+      // which the backend only returns once the password is already correct.
+      if (err.message === 'FIRM_INACTIVE') {
+        setError('تم إيقاف حساب المكتب، الرجاء التواصل مع الدعم الفني')
+      } else if (err.status === 401 || err.status === 400 || err.status === 404) {
         setError('البريد الإلكتروني أو كلمة المرور غير صحيحة')
       } else if (err.status === 429) {
         setError('محاولات دخول كثيرة، الرجاء الانتظار قليلاً ثم المحاولة مرة أخرى')

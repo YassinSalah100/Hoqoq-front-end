@@ -257,7 +257,7 @@ export default function Hearings() {
   const { data, loading, error, reload } = useFetch(() => hearingsApi.list(), [])
   const { data: casesAll } = useFetch(() => casesApi.list(), [])
   const { data: hearingTypes, error: hearingTypesError, reload: reloadHearingTypes } = useFetch(() => lookupsApi.list('HEARING_TYPE'), [])
-  const { data: employeesAll } = useFetch(() => employeesApi.list(), [])
+  const { data: employeesAll } = useFetch(() => employeesApi.directory(), [])
 
   const rows = useMemo(() => (Array.isArray(data) ? data : data?.items ?? []), [data])
   const casesById = useMemo(() => Object.fromEntries((casesAll ?? []).map((c) => [c.id, c])), [casesAll])
