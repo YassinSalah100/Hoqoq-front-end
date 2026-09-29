@@ -206,7 +206,6 @@ export const tenantsApi = {
   provisionFirm: (data) => post('/tenants/provision', data),
   list: () => get('/tenants'),
   get: (id) => get(`/tenants/${id}`),
-  remove: (id) => del(`/tenants/${id}`),
   updateStatus: (id, status) => patch(`/tenants/${id}/status`, { status }), // 'ACTIVE' | 'INACTIVE'
   setFirmAdminPermissions: (id, permissionKeys) => patch(`/tenants/${id}/firm-admin/permissions`, { permissionKeys }),
   getMyFirm: () => get('/tenants/my-firm'),
