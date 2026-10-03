@@ -727,20 +727,11 @@ function matchesCaseType(employee, caseTypeId) {
   return Boolean(employee?.isGeneralSpecialization) || employee?.specializationId === caseTypeId
 }
 
-// Every field UpdateCaseDto accepts — including caseTypeId/primaryLawyerId/
-// governorateId/defaultCourtId/circuitId, which the old version of this
-// form left out entirely. Activating a case (CasesService.changeStatus)
-// requires all of governorateId, defaultCourtId, caseTypeId,
-// primaryLawyerId, and openingDate — leaving them out here meant a case
-// created without one of them (they're all optional at creation time) could
-// never be completed and activated afterward, only ever failing with
-// "Cannot activate Case; missing: ..." with no way to fix it. `status`
-// itself is still not in UpdateCaseDto — use casesApi.changeStatus via the
-// status selector next to the page header instead. closingDate/
-// outcomeSummary are Case columns but aren't exposed on Create/UpdateCaseDto
-// by the backend at all, so there is still no way to set them from this UI.
+// Every field UpdateCaseDto accepts. Activating a case requires governorate,
+// court, case type, owner, opening date, description and court case
+// number/year (PRD §6.4) — all editable here. The internal case number is
+// server-generated and immutable; status goes through StatusChanger.
 function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
-  const [caseNumber, setCaseNumber] = useState(caseItem.caseNumber ?? '')
   const [title, setTitle] = useState(caseItem.title ?? '')
   const [courtCaseNumber, setCourtCaseNumber] = useState(caseItem.courtCaseNumber ?? '')
   const [courtCaseYear, setCourtCaseYear] = useState(caseItem.courtCaseYear ?? '')
@@ -779,7 +770,6 @@ function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
     setSaving(true)
     try {
       await casesApi.update(caseItem.id, {
-        caseNumber,
         title: title || undefined,
         courtCaseNumber: courtCaseNumber || undefined,
         courtCaseYear: courtCaseYear ? Number(courtCaseYear) : undefined,
@@ -804,13 +794,9 @@ function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
     <Modal open={open} onClose={onClose} title="تعديل القضية" size="lg">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className={labelClass}>رقم القضية</label>
-            <input required value={caseNumber} onChange={(e) => setCaseNumber(e.target.value)} className={inputClass} />
-          </div>
-          <div>
+          <div className="sm:col-span-2">
             <label className={labelClass}>عنوان القضية</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
+            <input required value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>نوع القضية</label>
@@ -897,35 +883,121 @@ function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
   )
 }
 
+// Mirrors CasesService.changeStatus (PRD §6.7): e.g. ACTIVE can't jump to
+// ARCHIVED — it must be CLOSED first.
+const CASE_TRANSITIONS = {
+  DRAFT: ['ACTIVE', 'ARCHIVED'],
+  ACTIVE: ['ON_HOLD', 'CLOSED'],
+  ON_HOLD: ['ACTIVE', 'CLOSED'],
+  CLOSED: ['ACTIVE', 'ARCHIVED'],
+  ARCHIVED: ['DRAFT', 'ACTIVE', 'ON_HOLD', 'CLOSED'],
+}
+
+const ACTIVATION_FIELD_LABELS = {
+  governorateId: 'المحافظة',
+  defaultCourtId: 'المحكمة',
+  caseTypeId: 'نوع القضية',
+  primaryLawyerId: 'المحامي المسؤول',
+  openingDate: 'تاريخ الفتح',
+  description: 'وصف القضية',
+  courtCaseNumber: 'رقم القضية لدى المحكمة',
+  courtCaseYear: 'سنة القضية',
+}
+
+function statusChangeErrorMessage(err) {
+  const missing = /missing: (.+)$/.exec(err.message ?? '')
+  if (missing) {
+    const fields = missing[1].split(',').map((f) => ACTIVATION_FIELD_LABELS[f.trim()] ?? f.trim())
+    return `لا يمكن تفعيل القضية قبل استكمال: ${fields.join('، ')}. استخدم زر "تعديل" لإكمالها.`
+  }
+  return err.message ?? 'تعذر تغيير حالة القضية'
+}
+
 function StatusChanger({ caseItem, reload }) {
   const { currentUser } = useAuth()
   const canChangeStatus = hasPermission(currentUser, 'case.status.manage')
   const [saving, setSaving] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const [outcomeText, setOutcomeText] = useState('')
+  const [error, setError] = useState(null)
   if (!canChangeStatus) return null
 
-  async function handleChange(e) {
-    const status = e.target.value
-    if (status === caseItem.status) return
+  const targets = CASE_TRANSITIONS[caseItem.status] ?? []
+
+  async function applyStatus(status, extra) {
     setSaving(true)
+    setError(null)
     try {
-      await casesApi.changeStatus(caseItem.id, status)
+      await casesApi.changeStatus(caseItem.id, status, extra)
+      setClosing(false)
+      setOutcomeText('')
       reload()
     } catch (err) {
-      alert(err.message ?? 'تعذر تغيير حالة القضية')
+      const message = statusChangeErrorMessage(err)
+      if (closing) setError(message)
+      else alert(message)
     } finally {
       setSaving(false)
     }
   }
 
+  function handleChange(e) {
+    const status = e.target.value
+    if (status === caseItem.status) return
+    // Closing requires a free-text case outcome (PRD §6.7).
+    if (status === 'CLOSED') {
+      setClosing(true)
+      return
+    }
+    applyStatus(status)
+  }
+
   return (
-    <select
-      value={caseItem.status}
-      onChange={handleChange}
-      disabled={saving}
-      className="text-xs rounded-lg border border-paper-line px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brass-500/30"
-    >
-      {Object.entries(CASE_STATUS).map(([value, v]) => <option key={value} value={value}>{v.label}</option>)}
-    </select>
+    <>
+      <select
+        value={caseItem.status}
+        onChange={handleChange}
+        disabled={saving || targets.length === 0}
+        className="text-xs rounded-lg border border-paper-line px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brass-500/30"
+      >
+        <option value={caseItem.status}>{CASE_STATUS[caseItem.status]?.label ?? caseItem.status}</option>
+        {targets.map((value) => (
+          <option key={value} value={value}>
+            ← {CASE_STATUS[value]?.label ?? value}
+          </option>
+        ))}
+      </select>
+
+      <Modal open={closing} onClose={() => { setClosing(false); setError(null) }} title="إغلاق القضية">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!outcomeText.trim()) return
+            applyStatus('CLOSED', { outcomeText: outcomeText.trim() })
+          }}
+          className="flex flex-col gap-3"
+        >
+          <p className="text-sm text-ink-500">
+            إغلاق القضية يجعلها للقراءة فقط بما في ذلك الشؤون المالية. أدخل نتيجة القضية:
+          </p>
+          <textarea
+            required
+            autoFocus
+            rows={4}
+            maxLength={2000}
+            value={outcomeText}
+            onChange={(e) => setOutcomeText(e.target.value)}
+            className={inputClass}
+            placeholder="مثال: صدر حكم لصالح الموكل..."
+          />
+          {error && <p className="text-sm text-rust-600 bg-rust-100 rounded-lg px-3 py-2">{error}</p>}
+          <div className="flex items-center gap-2 justify-end">
+            <Button type="button" variant="secondary" onClick={() => { setClosing(false); setError(null) }}>إلغاء</Button>
+            <Button type="submit" disabled={saving || !outcomeText.trim()}>{saving ? 'جاري الإغلاق...' : 'إغلاق القضية'}</Button>
+          </div>
+        </form>
+      </Modal>
+    </>
   )
 }
 
@@ -939,7 +1011,7 @@ export default function CaseDetail() {
   const { data: employees } = useFetch(() => employeesApi.directory(), [])
 
   const visibleTabs = useMemo(
-    () => TABS.filter((t) => t.value !== 'finance' || hasPermission(currentUser, 'finance.case.view')),
+    () => TABS.filter((t) => t.value !== 'finance' || hasPermission(currentUser, 'finance.view')),
     [currentUser]
   )
   const canEdit = hasPermission(currentUser, 'case.edit')
@@ -986,7 +1058,7 @@ export default function CaseDetail() {
       {tab === 'overview' && (
         <div className="bg-white rounded-xl p-6 shadow-card border border-paper-line grid grid-cols-1 sm:grid-cols-2 gap-6">
           {[
-            ['الموكل', caseItem.clientSnapshot?.name],
+            ['الموكل', (caseItem.clients ?? []).map((c) => c.name).join('، ') || null],
             ['نوع القضية', caseItem.caseType?.nameAr],
             ['المحكمة', caseItem.defaultCourt?.nameAr],
             ['المحامي المسؤول', leadLawyer(caseItem, employees)],

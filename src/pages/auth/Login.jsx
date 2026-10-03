@@ -63,8 +63,6 @@ export default function Login() {
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [mfaCode, setMfaCode] = useState('')
-  const [showMfaField, setShowMfaField] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [capsLockOn, setCapsLockOn] = useState(false)
@@ -80,13 +78,17 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      const { user } = await login(email, password, mfaCode)
+      const { user } = await login(email, password)
       navigate(getDefaultRoute(user))
     } catch (err) {
       // BR-001: never reveal which field was wrong — except FIRM_INACTIVE,
       // which the backend only returns once the password is already correct.
       if (err.message === 'FIRM_INACTIVE') {
         setError('تم إيقاف حساب المكتب، الرجاء التواصل مع الدعم الفني')
+      } else if (err.message === 'Firm subscription grace period has ended') {
+        setError('انتهى اشتراك المكتب وانقضت فترة السماح، الرجاء التواصل مع الدعم الفني لتجديده')
+      } else if (err.message === 'Firm subscription does not allow access') {
+        setError('اشتراك المكتب غير مفعّل حالياً، الرجاء التواصل مع الدعم الفني')
       } else if (err.status === 401 || err.status === 400 || err.status === 404) {
         setError('البريد الإلكتروني أو كلمة المرور غير صحيحة')
       } else if (err.status === 429) {
@@ -172,31 +174,6 @@ export default function Login() {
                 )}
               </div>
 
-              {/* Only Firm Admin accounts can have MFA, and the backend
-                  deliberately returns the same error for a wrong password or
-                  a wrong code (no account-enumeration signal), so the code
-                  field stays an opt-in toggle rather than a second screen. */}
-              {showMfaField && (
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="mfaCode" className={labelClass}>رمز المصادقة الثنائية</label>
-                  <div className="relative">
-                    <input
-                      id="mfaCode"
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
-                      value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="000000"
-                      dir="ltr"
-                      className={`${inputClass} tracking-[0.4em]`}
-                    />
-                    <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-brown/35" />
-                  </div>
-                </div>
-              )}
-
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -207,15 +184,6 @@ export default function Login() {
                   />
                   <span className="text-[14px] text-brand-brown/80">تذكرني</span>
                 </label>
-                {!showMfaField && (
-                  <button
-                    type="button"
-                    onClick={() => setShowMfaField(true)}
-                    className="text-[14px] text-brand-brown/60 hover:text-brand-gold"
-                  >
-                    استخدام رمز التحقق
-                  </button>
-                )}
               </div>
 
               {error && (

@@ -97,6 +97,8 @@ function refreshAccessToken() {
   return refreshPromise
 }
 
+const CREDENTIAL_CHECK_PATHS = new Set(['/auth/login', '/auth/change-password', '/auth/activate', '/auth/reset-password'])
+
 async function request(path, { method = 'GET', body, headers, isForm, skipAuthRetry } = {}) {
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`
 
@@ -120,7 +122,12 @@ async function request(path, { method = 'GET', body, headers, isForm, skipAuthRe
     }
   }
 
-  if (res.status === 401 && !skipAuthRetry && refreshToken && path !== '/auth/refresh') {
+  // On these endpoints a 401 means "the credentials you just typed are
+  // wrong" (bad password, wrong old password, used/expired token) — not an
+  // expired session — so it must not trigger a refresh or a forced logout.
+  const credentialCheck = CREDENTIAL_CHECK_PATHS.has(path)
+
+  if (res.status === 401 && !credentialCheck && !skipAuthRetry && refreshToken && path !== '/auth/refresh') {
     try {
       await refreshAccessToken()
       return request(path, { method, body, headers, isForm, skipAuthRetry: true })
@@ -131,9 +138,14 @@ async function request(path, { method = 'GET', body, headers, isForm, skipAuthRe
   }
 
   if (!res.ok || payload?.success === false) {
-    if (res.status === 401) onUnauthorized?.()
+    if (res.status === 401 && !credentialCheck) onUnauthorized?.()
     let message = payload?.message || `تعذر الاتصال بالخادم (${res.status})`
     if (Array.isArray(message)) message = message.join(' - ')
+    // Business-rule errors (PRD BR-030) arrive bilingual as "عربي | English";
+    // the UI is Arabic, so keep the Arabic half.
+    if (typeof message === 'string' && message.includes(' | ') && /[؀-ۿ]/.test(message)) {
+      message = message.split(' | ')[0].trim()
+    }
     if (res.status === 402) message = 'اشتراك المكتب غير مفعّل أو منتهي.'
     if (res.status === 403) message = 'غير مصرح لك بالوصول إلى هذا القسم.'
     if (res.status >= 500) message = 'حدث خطأ في الخادم، الرجاء المحاولة لاحقاً'
@@ -153,22 +165,15 @@ const del = (path) => request(path, { method: 'DELETE' })
 // Field names verified against the live backend (src/modules/identity):
 // reset-password wants `newPassword`, change-password wants `oldPassword`/`newPassword`.
 export const authApi = {
-  // mfaCode is omitted (not sent as '') when blank — the backend's own
-  // @IsOptional() only skips validation when the property is absent, and an
-  // empty string fails its 6-digit @Matches() pattern.
-  login: (email, password, mfaCode) => post('/auth/login', { email, password, ...(mfaCode ? { mfaCode } : {}) }),
+  login: (email, password) => post('/auth/login', { email, password }),
   refresh: (token) => post('/auth/refresh', { refreshToken: token }),
   logout: () => post('/auth/logout'),
   forgotPassword: (email) => post('/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) => post('/auth/reset-password', { token, newPassword }),
   changePassword: (oldPassword, newPassword) => post('/auth/change-password', { oldPassword, newPassword }),
-  // One-time account activation (firm owners provisioned by the Super Admin,
-  // employees onboarded by their firm) — replaces the old "set a password at
-  // creation time" flow. `setup` returns an MFA secret + QR provisioning URI
-  // whenever the account being activated is a Firm Admin (mfaRequired: true);
-  // employees activate without it.
-  activationSetup: (token) => post('/auth/activation/setup', { token }),
-  activate: (token, newPassword, mfaCode) => post('/auth/activate', { token, newPassword, ...(mfaCode ? { mfaCode } : {}) }),
+  // One-time Firm Admin activation from the invitation email. No MFA in v1;
+  // employees never activate — the Firm Admin sets their credentials.
+  activate: (token, newPassword) => post('/auth/activate', { token, newPassword }),
 }
 
 // ---- Users ----
@@ -265,7 +270,9 @@ export const employeesApi = {
   directory: () => get('/employees/directory'),
   get: (id) => get(`/employees/${id}`),
   update: (id, data) => patch(`/employees/${id}`, data), // position, department, hireDate, specializationId, generalSpecialization
-  remove: (id) => del(`/employees/${id}`),
+  remove: (id) => del(`/employees/${id}`), // deactivates (BR-012: never deleted)
+  // Firm Admin only (BR-033) — also signs the employee out everywhere.
+  setCredentials: (id, password) => post(`/employees/${id}/credentials`, { password }),
   getPermissions: (id) => get(`/employees/${id}/permissions`),
   setPermissions: (id, permissionKeys) => patch(`/employees/${id}/permissions`, { permissionKeys }),
 }
@@ -281,8 +288,9 @@ export const casesApi = {
   list: () => get('/cases'),
   get: (id) => get(`/cases/${id}`),
   update: (id, data) => patch(`/cases/${id}`, data),
-  remove: (id) => del(`/cases/${id}`), // archives the case (soft delete)
-  changeStatus: (id, status) => patch(`/cases/${id}/status`, { status }),
+  archive: (id) => patch(`/cases/${id}/archive`), // Cases are never deleted (BR-012)
+  // outcomeText is required by the backend when closing (status === 'CLOSED').
+  changeStatus: (id, status, extra) => patch(`/cases/${id}/status`, { status, ...extra }),
   addNote: (id, content) => post(`/cases/${id}/notes`, { content }),
   // capabilities: string[] of CaseCapability codes (see data/enums.js CASE_CAPABILITIES).
   // Passing [] revokes everything for that user (mirrors the backend's own revoke route).

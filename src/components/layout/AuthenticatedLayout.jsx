@@ -4,72 +4,82 @@ import { Timer, X } from 'lucide-react'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import Button from '../ui/Button'
-import { isSuperAdmin } from '../../data/auth'
+import { isFirmAdmin } from '../../data/auth'
 import { tenantsApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 
-const TRIAL_DAYS = 14
+const DAY_MS = 24 * 60 * 60 * 1000
+const GRACE_DAYS = 7 // BR-026
+const RENEWAL_WARNING_DAYS = 7
 
-// Mirrors the backend's own rule (TenantsService.provisionFirm ->
-// createTrialSubscription: 14 days from the firm's creation date) since there
-// is no read endpoint yet for the subscription record itself.
-function trialDaysLeft(createdAt) {
-  if (!createdAt) return null
-  const end = new Date(createdAt)
-  end.setDate(end.getDate() + TRIAL_DAYS)
-  return Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24))
+function daysUntil(date) {
+  return Math.ceil((date.getTime() - Date.now()) / DAY_MS)
+}
+
+// What (if anything) the Firm Admin should be warned about. A PENDING or
+// CANCELLED subscription can't reach this screen at all — the backend refuses
+// the login — so only two cases are left: the period has ended and the firm
+// is in its 7-day grace period (BR-026), or renewal is coming up soon.
+function subscriptionNotice(firm) {
+  const sub = (firm?.subscriptions ?? []).find((s) => !s.supersededAt && !s.isArchived)
+  if (!sub?.currentPeriodEnd) return null
+  const periodEnd = new Date(sub.currentPeriodEnd)
+  periodEnd.setHours(23, 59, 59, 999)
+  const graceEnd = sub.graceEndAt ? new Date(sub.graceEndAt) : new Date(periodEnd.getTime() + GRACE_DAYS * DAY_MS)
+
+  if (sub.status === 'EXPIRED' || periodEnd < new Date()) {
+    const left = Math.max(daysUntil(graceEnd), 0)
+    return {
+      tone: 'bg-rust-100 text-rust-600',
+      text: (
+        <>
+          انتهت مدة اشتراك المكتب — فترة السماح تنتهي خلال<strong className="mx-1">{left} أيام</strong>، وبعدها سيتوقف الدخول لجميع الحسابات.
+        </>
+      ),
+    }
+  }
+  const left = daysUntil(periodEnd)
+  if (sub.status === 'ACTIVE' && left <= RENEWAL_WARNING_DAYS) {
+    return {
+      tone: 'bg-brass-100 text-brass-700',
+      text: (
+        <>
+          ينتهي اشتراك المكتب خلال<strong className="mx-1">{left} أيام</strong>— تواصل مع الدعم الفني للتجديد.
+        </>
+      ),
+    }
+  }
+  return null
 }
 
 export default function AuthenticatedLayout({ user, onLogout }) {
   const [showBanner, setShowBanner] = useState(true)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const isSA = isSuperAdmin(user)
+  // Subscription details are Firm Admin information (PRD §4.2); the Super
+  // Admin has no firm and employees don't see billing.
+  const firmAdmin = isFirmAdmin(user)
 
-  // The Super Admin operates the platform — he has no firm and no subscription
-  // of his own, so the firm-facing trial banner must never show for him.
-  const { data: firm } = useFetch(() => (isSA ? Promise.resolve(null) : tenantsApi.getMyFirm()), [isSA])
-  // getMyFirm() returns every subscription row (relation: subscriptions,
-  // subscriptions.plan); the live one is whichever wasn't superseded/archived
-  // by a later plan change. Once the Super Admin activates a real plan for
-  // the firm, that row's status flips to ACTIVE and the trial banner (a
-  // synthetic 14-day countdown from firm.createdAt) must stop showing —
-  // it has nothing to do with a firm that already has a paid subscription.
-  const currentSubscription = firm?.subscriptions?.find((s) => !s.supersededAt && !s.isArchived) ?? null
-  const hasActivePlan = currentSubscription?.status === 'ACTIVE'
-  const daysLeft = trialDaysLeft(firm?.createdAt)
-  const showTrialBanner = showBanner && !isSA && !hasActivePlan && daysLeft !== null
+  const { data: firm } = useFetch(() => (firmAdmin ? tenantsApi.getMyFirm() : Promise.resolve(null)), [firmAdmin])
+  const notice = showBanner && firmAdmin ? subscriptionNotice(firm) : null
 
   return (
     <div className="flex h-screen bg-paper" dir="rtl">
       <Sidebar user={user} onLogout={onLogout} mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar user={user} onLogout={onLogout} onOpenMenu={() => setMobileNavOpen(true)} />
-        {showTrialBanner && (
-          <div
-            className={`flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 text-sm ${
-              daysLeft <= 0 ? 'bg-rust-100 text-rust-600' : 'bg-brass-100 text-brass-700'
-            }`}
-          >
+        {notice && (
+          <div className={`flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 text-sm ${notice.tone}`}>
             <div className="flex items-center gap-2">
               <Timer size={14} className="shrink-0" />
-              <span>
-                {daysLeft <= 0 ? (
-                  'انتهت فترتك التجريبية المجانية'
-                ) : (
-                  <>
-                    أنت في فترة التجربة المجانية —<strong className="mx-1">{daysLeft} أيام متبقية</strong>
-                  </>
-                )}
-              </span>
-              <span className="hidden sm:inline opacity-80">للوصول لجميع الميزات بالكامل.</span>
+              <span>{notice.text}</span>
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <Link to="/subscription">
                 <Button variant="primary" className="!py-1.5 !px-3 text-xs">
-                  اشترك الآن
+                  تفاصيل الاشتراك
                 </Button>
               </Link>
-              <button onClick={() => setShowBanner(false)} className="hover:opacity-70">
+              <button onClick={() => setShowBanner(false)} className="hover:opacity-70" aria-label="إغلاق">
                 <X size={14} />
               </button>
             </div>

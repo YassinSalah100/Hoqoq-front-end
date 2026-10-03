@@ -26,37 +26,40 @@ export const ROLE_LABELS = {
   member: 'عضو الفريق',
 }
 
+// Marks a page only the Firm Admin may open (PRD: subscription visibility,
+// audit.view and report.view are reserved to the Firm Admin in v1).
+const FIRM_ADMIN_ONLY = 'FIRM_ADMIN_ONLY'
+
 // Every sidebar route mapped to the exact backend permission code that gates
-// it (see permissions.constant.ts — codes are singular/dotted, e.g.
-// 'case.view', not 'cases.read'). `null` means the route has no permission
-// gate on the backend (or is a local-mock-only page with no API calls at
-// all) — it's always visible to any firm member.
+// it (see permissions.constant.ts). `null` = any firm member.
 const SIDEBAR_PERMISSION = {
   dashboard: 'dashboard.read',
   cases: 'case.view',
   hearings: 'hearing.view',
-  // Clients aren't a standalone resource anymore — the "clients" page is a
-  // read-only view derived from the cases list, so it's gated the same way.
-  clients: 'case.view',
+  // Clients are case-local records; the page is derived from the cases list
+  // and the backend only joins clients for accounts holding client.view.
+  clients: 'client.view',
   tasks: 'task.view',
   calendar: 'calendar.read',
-  invoices: 'finance.firm.read',
-  expenses: null, // mock-only page, no backend endpoint
-  'reports/finance': 'finance.firm.read',
-  employees: 'employee.read',
-  // Roles.jsx is now the permission-catalog / per-employee permission editor.
-  roles: 'employee.permission.manage',
+  invoices: 'finance.firm.view',
+  'reports/finance': 'finance.firm.view',
+  employees: 'employee.view',
+  // Roles.jsx is the per-employee permission editor.
+  roles: 'employee.manage',
   settings: 'firm.profile.read',
-  'audit-log': null, // mock-only page, no backend endpoint
-  'ai-search': null,
-  subscription: null,
+  'audit-log': FIRM_ADMIN_ONLY,
+  subscription: FIRM_ADMIN_ONLY,
 }
 
 const SIDEBAR_ORDER = [
   'dashboard', 'cases', 'hearings', 'clients', 'tasks', 'calendar',
-  'invoices', 'expenses', 'reports/finance', 'employees', 'roles',
-  'settings', 'audit-log', 'ai-search', 'subscription',
+  'invoices', 'reports/finance', 'employees', 'roles',
+  'settings', 'audit-log', 'subscription',
 ]
+
+export function isFirmAdmin(user) {
+  return user?.accountType === 'FIRM_ADMIN'
+}
 
 export function isSuperAdmin(user) {
   return Boolean(user?.isSuperAdmin) || user?.accountType === 'SUPER_ADMIN'
@@ -71,19 +74,24 @@ export function resolveAccessRole(user) {
   return byJob[user.jobClassification] ?? 'member'
 }
 
+// BR-001: the Firm Admin has unrestricted access inside their own firm and
+// holds no permission codes at all — mirrors the backend PermissionsGuard,
+// which returns true for FIRM_ADMIN before checking any code.
 export function hasPermission(user, permissionKey) {
+  if (isFirmAdmin(user)) return true
   return (user?.permissions ?? []).includes(permissionKey)
 }
 
 export function canSeeSidebarItem(user, path) {
   if (!user) return false
-  // Platform-admin sections are only for the Super Admin, regardless of
-  // anything in `permissions` (a firm account never has these).
-  if (path === 'users' || path === 'firms') return isSuperAdmin(user)
+  // Platform-admin sections are only for the Super Admin.
+  if (path === 'firms') return isSuperAdmin(user)
   if (isSuperAdmin(user)) return false
+  if (!(path in SIDEBAR_PERMISSION)) return false
 
   const required = SIDEBAR_PERMISSION[path]
-  if (required === null || required === undefined) return true
+  if (required === FIRM_ADMIN_ONLY) return isFirmAdmin(user)
+  if (required === null) return true
   return hasPermission(user, required)
 }
 

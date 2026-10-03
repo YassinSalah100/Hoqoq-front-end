@@ -253,11 +253,17 @@ export default function Tasks() {
   const overdueCount = rows.filter(isOverdue).length
 
   const createFields = [
-    { name: 'title', label: 'عنوان المهمة', required: true },
+    { name: 'title', label: 'عنوان المهمة', required: true },  
     { name: 'description', label: 'الوصف', type: 'textarea' },
     { name: 'priority', label: 'الأولوية', type: 'select', options: Object.entries(TASK_PRIORITY).map(([value, v]) => ({ value, label: v.label })) },
     { name: 'dueDate', label: 'تاريخ الاستحقاق', type: 'date' },
-    { name: 'caseId', label: 'القضية', type: 'select', options: (casesAll ?? []).map((c) => ({ value: c.id, label: c.caseNumber })) },
+    {
+      name: 'caseId',
+      label: 'القضية',
+      type: 'select',
+      required: true,
+      options: (casesAll ?? []).map((c) => ({ value: c.id, label: c.title ? `${c.caseNumber} — ${c.title}` : c.caseNumber })),
+    },
     {
       name: 'assignedToId',
       label: 'الموظف المسؤول',
@@ -310,7 +316,10 @@ export default function Tasks() {
             // the assigner from the authenticated user, and the global
             // ValidationPipe (whitelist + forbidNonWhitelisted) 400s on any
             // extra property.
-            await tasksApi.create(values)
+            // Drop fields left blank (e.g. a cleared date) — the backend's
+            // validators reject empty strings rather than ignoring them.
+            const payload = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== '' && v != null))
+            await tasksApi.create(payload)
             reload()
           }}
         />

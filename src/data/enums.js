@@ -57,21 +57,30 @@ export const CASE_FINANCE_STATUS = {
   PAID: { label: 'مسددة بالكامل', bg: 'bg-emerald-100', text: 'text-emerald-700' },
 }
 
-// CasePayment.method (backend PaymentMethod enum) — CHEQUE/ONLINE replace
-// the old CHECK/CREDIT_CARD guesses.
+// CasePayment.method (backend PaymentMethod enum, PRD §7.12) — manual
+// labels for payments made outside HOQOOQ.
 export const PAYMENT_METHOD = {
   CASH: 'نقداً',
   BANK_TRANSFER: 'تحويل بنكي',
+  CARD: 'بطاقة',
+  WALLET: 'محفظة إلكترونية',
   CHEQUE: 'شيك',
-  ONLINE: 'دفع إلكتروني',
+  OTHER: 'أخرى',
 }
 
 // CaseClient.clientType / CaseOpponentSnapshot.opponentType (both use the
-// same backend CasePartyType enum: INDIVIDUAL | COMPANY only — no
-// GOVERNMENT option server-side for either party type).
+// backend CasePartyType enum).
 export const PARTY_TYPE = {
   INDIVIDUAL: 'فرد',
   COMPANY: 'شركة',
+  GOVERNMENT_ENTITY: 'جهة حكومية',
+}
+
+// A Case can carry several Clients (CaseClient rows); exactly one is
+// PRIMARY_CLIENT (PRD §6.1). Falls back to the first if none is flagged.
+export function primaryClientOf(caseItem) {
+  const clients = caseItem?.clients ?? []
+  return clients.find((c) => c.isPrimary) ?? clients[0] ?? null
 }
 
 // CaseCapability (backend enum) — the atomic grants a Case's access-grant

@@ -17,12 +17,11 @@ const DONUT_COLORS = ['#B98B33', '#5E4D34']
 export default function Dashboard() {
   const { currentUser } = useAuth()
   const { data, loading, error, reload } = useFetch(() => dashboardApi.summary(), [])
-  const { data: hearings } = useFetch(() => hearingsApi.list(), [])
-  // DashboardSummaryDto has no invoice/finance fields anymore (that model is
-  // gone — finance is now a per-case fee/payment ledger). Pull the firm-wide
-  // collected/outstanding split from /finance/summary instead, gated the
-  // same way the "finance" case-detail tab is (finance.firm.read).
-  const canViewFinance = hasPermission(currentUser, 'finance.firm.read')
+  const canViewHearings = hasPermission(currentUser, 'hearing.view')
+  const { data: hearings } = useFetch(() => (canViewHearings ? hearingsApi.list() : Promise.resolve([])), [canViewHearings])
+  // The firm-wide collected/outstanding split comes from /finance/summary,
+  // which needs finance.firm.view (Firm Admin always has it).
+  const canViewFinance = hasPermission(currentUser, 'finance.firm.view')
   const { data: finance } = useFetch(() => (canViewFinance ? financeApi.summary() : Promise.resolve(null)), [canViewFinance])
 
   if (loading) return <LoadingBlock label="جاري تحميل لوحة التحكم..." />

@@ -6,16 +6,18 @@ import DataTable from '../../components/ui/DataTable'
 import EnumBadge from '../../components/ui/EnumBadge'
 import EmptyState from '../../components/ui/EmptyState'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
-import { CASE_STATUS, EMPLOYEE_POSITION, CASE_FINANCE_STATUS } from '../../data/enums'
+import { CASE_STATUS, EMPLOYEE_POSITION, CASE_FINANCE_STATUS, primaryClientOf } from '../../data/enums'
 import { casesApi, financeApi, employeesApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
-import { hasPermission } from '../../data/auth'
+import { hasPermission, isFirmAdmin } from '../../data/auth'
 
+// The finance dashboard is open to finance.firm.view; the case/employee
+// reports are Firm-Admin-only in v1 (PRD BR-039).
 const TABS = [
-  { value: 'cases', label: 'القضايا' },
   { value: 'finance', label: 'المالية' },
-  { value: 'employees', label: 'الموظفين' },
+  { value: 'cases', label: 'القضايا', firmAdminOnly: true },
+  { value: 'employees', label: 'الموظفين', firmAdminOnly: true },
 ]
 
 // Matches CASE_FINANCE_STATUS semantics (paid=emerald, partial=brass, unpaid=rust).
@@ -34,7 +36,7 @@ function CasesTab() {
     <DataTable
       columns={[
         { key: 'caseNumber', header: 'رقم القضية', render: (r) => <span className="font-mono text-xs">{r.caseNumber}</span> },
-        { key: 'client', header: 'الموكل', sortable: false, render: (r) => r.clientSnapshot?.name ?? '—' },
+        { key: 'client', header: 'الموكل', sortable: false, render: (r) => primaryClientOf(r)?.name ?? '—' },
         { key: 'type', header: 'النوع', sortable: false, render: (r) => r.caseType?.nameAr ?? '—' },
         { key: 'status', header: 'الحالة', sortable: false, render: (r) => <EnumBadge code={r.status} map={CASE_STATUS} /> },
       ]}
@@ -50,7 +52,7 @@ function CasesTab() {
 // Cases carrying the most outstanding balance.
 function FinanceTab() {
   const { currentUser } = useAuth()
-  const canView = hasPermission(currentUser, 'finance.firm.read')
+  const canView = hasPermission(currentUser, 'finance.firm.view')
   const { data, loading, error, reload } = useFetch(() => (canView ? financeApi.summary() : Promise.resolve(null)), [canView])
 
   const cases = useMemo(() => (data?.cases ?? []).filter((c) => Number(c.agreedFee) > 0), [data])
@@ -162,14 +164,16 @@ function EmployeesTab() {
 }
 
 export default function FinanceReports() {
+  const { currentUser } = useAuth()
   const [tab, setTab] = useState('finance')
+  const tabs = TABS.filter((t) => !t.firmAdminOnly || isFirmAdmin(currentUser))
 
   return (
     <div>
       <PageHeader title="التقارير" />
 
       <div className="mb-6">
-        <Tabs tabs={TABS} active={tab} onChange={setTab} />
+        <Tabs tabs={tabs} active={tab} onChange={setTab} />
       </div>
 
       {tab === 'cases' && <CasesTab />}

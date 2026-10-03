@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import { authApi } from '../../lib/api'
+import { isStrongPassword, WEAK_PASSWORD_MESSAGE } from '../../lib/passwordPolicy'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -17,6 +18,10 @@ export default function ResetPassword() {
     e.preventDefault()
     setError(null)
 
+    if (!isStrongPassword(password)) {
+      setError(WEAK_PASSWORD_MESSAGE)
+      return
+    }
     if (password !== confirm) {
       setError('كلمتا المرور غير متطابقتين')
       return
@@ -28,7 +33,7 @@ export default function ResetPassword() {
       setDone(true)
       setTimeout(() => navigate('/login'), 1500)
     } catch (err) {
-      setError(err.message)
+      setError(err.message === 'Invalid or expired reset token' ? 'رابط إعادة التعيين غير صالح أو منتهي الصلاحية' : err.message)
     } finally {
       setLoading(false)
     }

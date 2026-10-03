@@ -17,7 +17,6 @@ import ClientDetail from './pages/clients/ClientDetail'
 import Tasks from './pages/tasks/Tasks'
 import CalendarPage from './pages/calendar/CalendarPage'
 import Invoices from './pages/finance/Invoices'
-import Expenses from './pages/finance/Expenses'
 import FinanceReports from './pages/finance/FinanceReports'
 import Employees from './pages/hr/Employees'
 import Roles from './pages/hr/Roles'
@@ -25,7 +24,6 @@ import Firms from './pages/platform/Firms'
 import Settings from './pages/settings/Settings'
 import Subscription from './pages/settings/Subscription'
 import AuditLog from './pages/settings/AuditLog'
-import AISearch from './pages/ai/AISearch'
 
 function Shell() {
   const { currentUser, restoring, logout } = useAuth()
@@ -62,14 +60,12 @@ function Shell() {
         <Route path="tasks" element={<Tasks />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="invoices" element={<Invoices />} />
-        <Route path="expenses" element={<Expenses />} />
         <Route path="reports/finance" element={<FinanceReports />} />
         <Route path="employees" element={<Employees />} />
         <Route path="roles" element={<Roles />} />
         <Route path="settings" element={<Settings />} />
         <Route path="subscription" element={<Subscription />} />
         <Route path="audit-log" element={<AuditLog />} />
-        <Route path="ai-search" element={<AISearch />} />
       </Route>
 
       {/* v1 is invite-only: no public signup, no marketplace. */}

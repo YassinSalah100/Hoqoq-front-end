@@ -268,7 +268,7 @@ function CaseFinanceModal({ caseId, caseNumber, canRecord, canManage, onClose, o
 
 export default function Invoices() {
   const { currentUser } = useAuth()
-  const canView = hasPermission(currentUser, 'finance.firm.read')
+  const canView = hasPermission(currentUser, 'finance.firm.view')
   const canRecord = hasPermission(currentUser, 'finance.payment.record')
   const canManage = hasPermission(currentUser, 'finance.manage')
 

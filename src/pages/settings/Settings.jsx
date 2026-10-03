@@ -7,11 +7,14 @@ import AuthedImage from '../../components/ui/AuthedImage'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
 import { tenantsApi, authApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
+import { useAuth } from '../../context/AuthContext'
+import { hasPermission, isFirmAdmin } from '../../data/auth'
+import { isStrongPassword, WEAK_PASSWORD_MESSAGE } from '../../lib/passwordPolicy'
 
 const SECTIONS = [
   {
     title: 'المكتب',
-    items: ['معلومات المكتب', 'ساعات العمل', 'الإجازات والعطل', 'قوالب الفواتير'],
+    items: ['معلومات المكتب', 'ساعات العمل', 'الإجازات والعطل'],
   },
   {
     title: 'الأعضاء',
@@ -28,6 +31,8 @@ const SECTIONS = [
   {
     title: 'الأمان',
     items: ['تغيير كلمة المرور'],
+    // BR-033: Employee credentials are administered by the Firm Admin.
+    firmAdminOnly: true,
   },
   {
     title: 'الاشتراك',
@@ -35,15 +40,36 @@ const SECTIONS = [
   },
 ]
 
-// Matches UpdateTenantDto exactly (name, address, contactEmail) — the backend
-// rejects any other property with a 400 (global ValidationPipe runs with
-// whitelist + forbidNonWhitelisted). There is no publicContactEmail/
-// publicContactPhone/website on the Tenant entity in this backend.
+// Firm profile fields accepted by UpdateTenantDto (PRD §4.1). Anything not
+// listed here is rejected by the backend (whitelist + forbidNonWhitelisted).
 const FIRM_INFO_FIELDS = [
   ['name', 'اسم المكتب'],
-  ['address', 'العنوان'],
   ['contactEmail', 'البريد الإلكتروني'],
+  ['phone', 'رقم الهاتف'],
+  ['website', 'الموقع الإلكتروني'],
+  ['address', 'العنوان'],
+  ['registrationNumber', 'رقم السجل التجاري'],
+  ['taxNumber', 'الرقم الضريبي'],
 ]
+const LTR_FIELDS = new Set(['contactEmail', 'website', 'phone'])
+
+// Blank optional fields are sent as null (clears them; the validators skip
+// null) — an empty string would fail e.g. the website URL check.
+function firmProfilePayload(values) {
+  const payload = {}
+  for (const [key] of FIRM_INFO_FIELDS) {
+    const value = (values[key] ?? '').toString().trim()
+    if (key === 'name') {
+      if (value) payload.name = value
+    } else if (key === 'website' && value && !/^https?:\/\//i.test(value)) {
+      payload.website = 'https://' + value
+    } else {
+      payload[key] = value || null
+    }
+  }
+  payload.description = (values.description ?? '').trim() || null
+  return payload
+}
 
 function FirmLogoUploader({ logoUrl, onUploaded }) {
   const inputRef = useRef(null)
@@ -103,6 +129,8 @@ function FirmLogoUploader({ logoUrl, onUploaded }) {
 }
 
 function FirmInfoPanel() {
+  const { currentUser } = useAuth()
+  const canEdit = hasPermission(currentUser, 'firm.profile.manage')
   const { data, loading, error, reload } = useFetch(() => tenantsApi.getMyFirm(), [])
   const [values, setValues] = useState({})
   const [saving, setSaving] = useState(false)
@@ -116,15 +144,11 @@ function FirmInfoPanel() {
     setSaving(true)
     setSaved(false)
     try {
-      await tenantsApi.updateMyFirm({
-        name: values.name,
-        address: values.address,
-        contactEmail: values.contactEmail,
-      })
+      await tenantsApi.updateMyFirm(firmProfilePayload(values))
       setSaved(true)
       reload()
-    } catch {
-      alert('تعذر حفظ إعدادات المكتب')
+    } catch (err) {
+      alert(err.message ?? 'تعذر حفظ إعدادات المكتب')
     } finally {
       setSaving(false)
     }
@@ -136,18 +160,30 @@ function FirmInfoPanel() {
   return (
     <>
       <h3 className="text-lg font-semibold text-ink-800 mb-4">معلومات المكتب</h3>
-      <FirmLogoUploader logoUrl={values.logoUrl} onUploaded={reload} />
+      {canEdit && <FirmLogoUploader logoUrl={values.logoUrl} onUploaded={reload} />}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {FIRM_INFO_FIELDS.map(([key, label]) => (
           <div key={key}>
             <label className="block text-xs text-ink-400 mb-1">{label}</label>
             <input
               value={values[key] ?? ''}
+              disabled={!canEdit}
+              dir={LTR_FIELDS.has(key) ? 'ltr' : undefined}
               onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-              className="w-full rounded-lg border border-paper-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass-500/30 focus:border-brass-500"
+              className="w-full rounded-lg border border-paper-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass-500/30 focus:border-brass-500 disabled:bg-paper-soft disabled:text-ink-500"
             />
           </div>
         ))}
+        <div className="sm:col-span-2">
+          <label className="block text-xs text-ink-400 mb-1">نبذة عن المكتب</label>
+          <textarea
+            rows={3}
+            value={values.description ?? ''}
+            disabled={!canEdit}
+            onChange={(e) => setValues((v) => ({ ...v, description: e.target.value }))}
+            className="w-full rounded-lg border border-paper-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass-500/30 focus:border-brass-500 disabled:bg-paper-soft disabled:text-ink-500"
+          />
+        </div>
       </div>
       {saved && (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-brass-100 border border-brass-200 mb-4">
@@ -155,9 +191,11 @@ function FirmInfoPanel() {
           <p className="text-sm text-brass-700">تم حفظ التغييرات بنجاح</p>
         </div>
       )}
-      <Button onClick={handleSave} disabled={saving}>
-        {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
-      </Button>
+      {canEdit && (
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+        </Button>
+      )}
     </>
   )
 }
@@ -173,6 +211,11 @@ function ChangePasswordPanel() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    setDone(false)
+    if (!isStrongPassword(newPassword)) {
+      setError(WEAK_PASSWORD_MESSAGE)
+      return
+    }
     if (newPassword !== confirm) {
       setError('كلمتا المرور الجديدتان غير متطابقتين')
       return
@@ -185,7 +228,7 @@ function ChangePasswordPanel() {
       setNewPassword('')
       setConfirm('')
     } catch (err) {
-      setError(err.message)
+      setError(err.message === 'Incorrect old password' ? 'كلمة المرور الحالية غير صحيحة' : err.message)
     } finally {
       setLoading(false)
     }
@@ -251,7 +294,9 @@ function ChangePasswordPanel() {
 }
 
 export default function Settings() {
+  const { currentUser } = useAuth()
   const [active, setActive] = useState('معلومات المكتب')
+  const sections = SECTIONS.filter((s) => !s.firmAdminOnly || isFirmAdmin(currentUser))
 
   return (
     <div>
@@ -259,7 +304,7 @@ export default function Settings() {
 
       <div className="flex gap-4">
         <aside className="w-60 shrink-0 bg-white rounded-xl border border-paper-line shadow-card p-3 h-fit">
-          {SECTIONS.map((section) => (
+          {sections.map((section) => (
             <div key={section.title} className="mb-4 last:mb-0">
               <p className="px-3 mb-1 text-xs text-ink-400 font-medium">{section.title}</p>
               {section.items.map((item) =>
@@ -290,7 +335,7 @@ export default function Settings() {
         <div className="flex-1 bg-white rounded-xl border border-paper-line shadow-card p-6">
           {active === 'معلومات المكتب' ? (
             <FirmInfoPanel />
-          ) : active === 'تغيير كلمة المرور' ? (
+          ) : active === 'تغيير كلمة المرور' && isFirmAdmin(currentUser) ? (
             <ChangePasswordPanel />
           ) : (
             <p className="text-ink-400 text-sm">إعدادات "{active}" غير متوفرة في هذه النسخة التجريبية.</p>

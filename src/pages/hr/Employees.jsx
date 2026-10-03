@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus, Trash2, ShieldCheck } from 'lucide-react'
+import { Plus, UserX, ShieldCheck, KeyRound } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import DataTable from '../../components/ui/DataTable'
 import Avatar from '../../components/ui/Avatar'
@@ -14,6 +14,8 @@ import { groupPermissionCodes } from '../../data/permissionCatalog'
 import { employeesApi, permissionsApi, referenceApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
+import { isFirmAdmin, hasPermission } from '../../data/auth'
+import { isStrongPassword, PASSWORD_RULE_HINT, WEAK_PASSWORD_MESSAGE } from '../../lib/passwordPolicy'
 
 // Wraps the shared permission editor (also used as the dedicated page at
 // /roles) in a modal for the quick per-row "edit permissions" action here —
@@ -33,6 +35,11 @@ export default function Employees() {
   const { currentUser } = useAuth()
   const [showCreate, setShowCreate] = useState(false)
   const [permissionsFor, setPermissionsFor] = useState(null)
+  const [credentialsFor, setCredentialsFor] = useState(null)
+  const canCreate = hasPermission(currentUser, 'employee.create')
+  const canManagePermissions = hasPermission(currentUser, 'employee.manage')
+  // BR-011 / BR-033: deactivation and credential resets are Firm-Admin-only.
+  const firmAdmin = isFirmAdmin(currentUser)
   const { data, loading, error, reload } = useFetch(() => employeesApi.list(), [])
   const { data: catalog } = useFetch(() => permissionsApi.catalog(), [])
   const { data: caseTypes } = useFetch(() => referenceApi.caseTypes(), [])
@@ -43,14 +50,22 @@ export default function Employees() {
     [catalog],
   )
 
-  async function handleDelete(employee) {
+  // Employees are never deleted (BR-012) — DELETE /employees/:id deactivates
+  // the account and revokes its sessions, and is blocked while the employee
+  // still owns cases or open tasks (BR-011).
+  async function handleDeactivate(employee) {
     const name = employee.user?.fullName || employee.user?.email
-    if (!confirm(`هل أنت متأكد من حذف حساب ${name}؟ لن يتمكن من الدخول إلى النظام بعد الحذف.`)) return
+    if (!confirm(`هل تريد إيقاف حساب ${name}؟ لن يتمكن من الدخول إلى النظام، مع الاحتفاظ بكل سجلاته.`)) return
     try {
       await employeesApi.remove(employee.id)
       reload()
     } catch (err) {
-      alert(err.message ?? 'تعذر حذف الموظف')
+      const open = /open assignments: (\d+) primary Case\(s\), (\d+) Task\(s\)/.exec(err.message ?? '')
+      alert(
+        open
+          ? `لا يمكن إيقاف الموظف قبل نقل مسؤولياته: ${open[1]} قضية يتولاها و${open[2]} مهمة مفتوحة.`
+          : err.message ?? 'تعذر إيقاف الموظف'
+      )
     }
   }
 
@@ -67,7 +82,7 @@ export default function Employees() {
   const createFields = [
     { name: 'fullName', label: 'الاسم الكامل', required: true },
     { name: 'email', label: 'البريد الإلكتروني', type: 'email', required: true },
-    { name: 'password', label: 'كلمة المرور المؤقتة (8+ حروف، تحتوي حرف كبير وصغير ورقم ورمز)', type: 'password', required: true },
+    { name: 'password', label: `كلمة المرور (${PASSWORD_RULE_HINT})`, type: 'password', required: true },
     { name: 'phone', label: 'رقم الجوال' },
     {
       name: 'jobClassification',
@@ -143,20 +158,33 @@ export default function Employees() {
           <span className="text-[10px] text-ink-300">حسابك</span>
         ) : (
           <span className="flex items-center gap-1">
-            <button
-              onClick={() => setPermissionsFor(r)}
-              title="الصلاحيات"
-              className="text-ink-300 hover:text-brass-600 p-1 rounded-lg hover:bg-brass-100"
-            >
-              <ShieldCheck size={14} />
-            </button>
-            <button
-              onClick={() => handleDelete(r)}
-              title="حذف"
-              className="text-ink-300 hover:text-rust-600 p-1 rounded-lg hover:bg-rust-100"
-            >
-              <Trash2 size={14} />
-            </button>
+            {canManagePermissions && (
+              <button
+                onClick={() => setPermissionsFor(r)}
+                title="الصلاحيات"
+                className="text-ink-300 hover:text-brass-600 p-1 rounded-lg hover:bg-brass-100"
+              >
+                <ShieldCheck size={14} />
+              </button>
+            )}
+            {firmAdmin && (
+              <button
+                onClick={() => setCredentialsFor(r)}
+                title="تعيين كلمة مرور جديدة"
+                className="text-ink-300 hover:text-brass-600 p-1 rounded-lg hover:bg-brass-100"
+              >
+                <KeyRound size={14} />
+              </button>
+            )}
+            {firmAdmin && (
+              <button
+                onClick={() => handleDeactivate(r)}
+                title="إيقاف الحساب"
+                className="text-ink-300 hover:text-rust-600 p-1 rounded-lg hover:bg-rust-100"
+              >
+                <UserX size={14} />
+              </button>
+            )}
           </span>
         ),
     },
@@ -167,11 +195,29 @@ export default function Employees() {
       <PageHeader
         title="الموظفين"
         actions={
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus size={14} />
-            إضافة موظف
-          </Button>
+          canCreate && (
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus size={14} />
+              إضافة موظف
+            </Button>
+          )
         }
+      />
+
+      {/* `key` gives each employee a fresh form so a typed password never
+          carries over to the next one. */}
+      <FormModal
+        key={credentialsFor?.id ?? 'none'}
+        open={Boolean(credentialsFor)}
+        onClose={() => setCredentialsFor(null)}
+        title={`كلمة مرور جديدة — ${credentialsFor?.user?.fullName ?? credentialsFor?.user?.email ?? ''}`}
+        submitLabel="حفظ كلمة المرور"
+        fields={[{ name: 'password', label: `كلمة المرور الجديدة (${PASSWORD_RULE_HINT})`, type: 'password', required: true }]}
+        onSubmit={async (values) => {
+          if (!isStrongPassword(values.password)) throw new Error(WEAK_PASSWORD_MESSAGE)
+          await employeesApi.setCredentials(credentialsFor.id, values.password)
+          alert('تم تعيين كلمة المرور الجديدة وتم تسجيل خروج الموظف من جميع الأجهزة. أبلغه بها بشكل آمن.')
+        }}
       />
 
       <FormModal
@@ -180,6 +226,7 @@ export default function Employees() {
         title="إضافة موظف"
         fields={createFields}
         onSubmit={async (values) => {
+          if (!isStrongPassword(values.password)) throw new Error(WEAK_PASSWORD_MESSAGE)
           const payload = {
             email: values.email,
             password: values.password,
@@ -206,7 +253,11 @@ export default function Employees() {
       {!loading && !error && (rows.length ? (
         <DataTable columns={columns} data={rows} />
       ) : (
-        <EmptyState message="لا يوجد موظفون حتى الآن" actionLabel="إضافة موظف" onAction={() => setShowCreate(true)} />
+        <EmptyState
+          message="لا يوجد موظفون حتى الآن"
+          actionLabel={canCreate ? 'إضافة موظف' : undefined}
+          onAction={canCreate ? () => setShowCreate(true) : undefined}
+        />
       ))}
     </div>
   )

@@ -77,8 +77,8 @@ export function AuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function login(email, password, mfaCode) {
-    const res = await authApi.login(email, password, mfaCode)
+  async function login(email, password) {
+    const res = await authApi.login(email, password)
     const user = await applySession({
       accessToken: res.accessToken ?? res.access_token,
       refreshToken: res.refreshToken ?? res.refresh_token,

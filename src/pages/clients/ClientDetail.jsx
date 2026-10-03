@@ -1,29 +1,43 @@
-import { useParams, useNavigate } from 'react-router-dom'
-import { Phone, Mail, Building2, User } from 'lucide-react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { Phone, Mail, Building2, User, Landmark, Star } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import Avatar from '../../components/ui/Avatar'
 import EnumBadge from '../../components/ui/EnumBadge'
 import EmptyState from '../../components/ui/EmptyState'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
-import { CASE_STATUS, PARTY_TYPE } from '../../data/enums'
+import { CASE_STATUS, PARTY_TYPE, primaryClientOf } from '../../data/enums'
 import { casesApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 
-// There's no separate client ID space anymore — a client is an immutable
-// snapshot embedded 1:1 on a case (see Clients.jsx). The `:id` route param
-// here is really a case id; this page fetches that case and reads its
-// `clientSnapshot`.
+const PARTY_ICON = { INDIVIDUAL: User, COMPANY: Building2, GOVERNMENT_ENTITY: Landmark }
+
+function Field({ label, value, mono }) {
+  if (!value) return null
+  return (
+    <p className="text-xs text-ink-400">
+      {label}: <span className={`text-ink-600 ${mono ? 'font-mono' : ''}`}>{value}</span>
+    </p>
+  )
+}
+
+// Clients are case-local (PRD §6.1): the `:id` route param is the case id,
+// and `?client=` picks which of that case's clients to show (defaults to
+// the primary one).
 export default function ClientDetail() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { data: caseItem, loading, error, reload } = useFetch(() => casesApi.get(id), [id])
 
   if (loading) return <LoadingBlock label="جاري تحميل بيانات الموكل..." />
   if (error) return <ErrorBlock error={error} onRetry={reload} />
-  if (!caseItem || !caseItem.clientSnapshot) return <EmptyState message="لم يتم العثور على بيانات الموكل" />
 
-  const client = caseItem.clientSnapshot
-  const isCompany = client.clientType === 'COMPANY'
+  const clientId = searchParams.get('client')
+  const client = (caseItem?.clients ?? []).find((c) => c.id === clientId) ?? primaryClientOf(caseItem)
+  if (!client) return <EmptyState message="لم يتم العثور على بيانات الموكل" />
+
+  const Icon = PARTY_ICON[client.clientType] ?? User
+  const isIndividual = client.clientType === 'INDIVIDUAL'
 
   return (
     <div>
@@ -34,28 +48,45 @@ export default function ClientDetail() {
           <div className="flex items-center gap-3 mb-4">
             <Avatar name={client.name} size="lg" />
             <div>
-              <p className="font-semibold text-ink-800">{client.name}</p>
+              <p className="font-semibold text-ink-800 flex items-center gap-1.5">
+                {client.name}
+                {client.isPrimary && <Star size={12} className="text-brass-500" aria-label="الموكل الرئيسي" />}
+              </p>
               <span className="inline-flex items-center gap-1 text-xs text-ink-400">
-                {isCompany ? <Building2 size={11} /> : <User size={11} />}
+                <Icon size={11} />
                 {PARTY_TYPE[client.clientType] ?? client.clientType}
               </span>
             </div>
           </div>
           <div className="space-y-2 text-sm text-ink-600">
             <p className="flex items-center gap-2 font-mono text-xs">
-              <Phone size={12} /> {client.phone ?? '—'}
+              <Phone size={12} /> <span dir="ltr">{client.phone ?? '—'}</span>
             </p>
             <p className="flex items-center gap-2">
               <Mail size={12} /> {client.email ?? '—'}
             </p>
             {client.address && <p className="text-xs text-ink-400">{client.address}</p>}
-            {client.nationalId && <p className="text-xs text-ink-400 font-mono">الهوية / السجل: {client.nationalId}</p>}
-            {client.registrationNo && <p className="text-xs text-ink-400 font-mono">رقم السجل: {client.registrationNo}</p>}
+            {isIndividual ? (
+              <>
+                <Field label="الرقم القومي" value={client.nationalId} mono />
+                <Field label="الجنسية" value={client.nationality} />
+                <Field label="رقم جواز السفر" value={client.passportNumber} mono />
+              </>
+            ) : (
+              <>
+                <Field label="الاسم القانوني" value={client.legalName} />
+                <Field label="الاسم التجاري" value={client.tradeName} />
+                <Field label="رقم السجل التجاري" value={client.registrationNo} mono />
+                <Field label="الرقم الضريبي" value={client.taxNumber} mono />
+                <Field label="الممثل القانوني" value={client.authorizedRepresentativeName} />
+                <Field label="هاتف الممثل" value={client.representativePhone} mono />
+              </>
+            )}
             {client.notes && <p className="text-xs text-ink-400 mt-2">{client.notes}</p>}
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-card border border-paper-line overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-card border border-paper-line overflow-hidden self-start">
           <div className="px-6 py-4 border-b border-paper-line">
             <h3 className="text-lg font-semibold text-ink-800">القضية</h3>
           </div>
@@ -64,7 +95,7 @@ export default function ClientDetail() {
             className="px-6 py-3 flex items-center justify-between cursor-pointer hover:bg-paper-soft transition-colors"
           >
             <div className="min-w-0">
-              <p className="text-sm text-ink-800 truncate">{caseItem.caseType?.nameAr ?? caseItem.title ?? caseItem.caseNumber}</p>
+              <p className="text-sm text-ink-800 truncate">{caseItem.title ?? caseItem.caseType?.nameAr ?? caseItem.caseNumber}</p>
               <p className="font-mono text-xs text-ink-400">{caseItem.caseNumber}</p>
             </div>
             <EnumBadge code={caseItem.status} map={CASE_STATUS} />
