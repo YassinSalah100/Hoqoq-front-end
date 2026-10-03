@@ -7,18 +7,15 @@
 export const CASE_STATUS = {
   DRAFT: { label: 'مسودة', bg: 'bg-paper-soft', text: 'text-ink-400' },
   ACTIVE: { label: 'نشطة', bg: 'bg-emerald-100', text: 'text-emerald-700' },
-  SUSPENDED: { label: 'معلّقة', bg: 'bg-brass-100', text: 'text-brass-700' },
+  ON_HOLD: { label: 'معلّقة', bg: 'bg-brass-100', text: 'text-brass-700' },
   CLOSED: { label: 'مغلقة', bg: 'bg-ink-100', text: 'text-ink-600' },
   ARCHIVED: { label: 'مؤرشفة', bg: 'bg-paper-soft', text: 'text-ink-400' },
 }
 
-// Case.priority (backend CasePriority enum) — same value set as Task priority.
-export const CASE_PRIORITY = {
-  LOW: { label: 'منخفضة', bg: 'bg-ink-50', text: 'text-ink-500', dot: 'bg-ink-300' },
-  NORMAL: { label: 'متوسطة', bg: 'bg-brass-100', text: 'text-brass-700', dot: 'bg-brass-500' },
-  HIGH: { label: 'عالية', bg: 'bg-rust-100', text: 'text-rust-600', dot: 'bg-rust-500' },
-  URGENT: { label: 'عاجلة', bg: 'bg-rust-100', text: 'text-rust-700', dot: 'bg-rust-600' },
-}
+// Case no longer has a priority field at all (backend dropped cases.priority
+// as dead MVP weight — see RemoveDuplicateMvpFields migration). Only Task
+// keeps its own, with a different value set (MEDIUM, not NORMAL) — see
+// TASK_PRIORITY below.
 
 // Case type is not a static enum — it's global reference data fetched via
 // referenceApi.caseTypes(); see Cases.jsx.
@@ -26,22 +23,30 @@ export const CASE_PRIORITY = {
 export const HEARING_STATUS = {
   SCHEDULED: { label: 'مجدولة', bg: 'bg-emerald-100', text: 'text-emerald-700' },
   COMPLETED: { label: 'منتهية', bg: 'bg-ink-100', text: 'text-ink-600' },
-  ADJOURNED: { label: 'مؤجلة', bg: 'bg-brass-100', text: 'text-brass-700' },
+  POSTPONED: { label: 'مؤجلة', bg: 'bg-brass-100', text: 'text-brass-700' },
   CANCELLED: { label: 'ملغاة', bg: 'bg-rust-100', text: 'text-rust-600' },
+  MISSED: { label: 'فائتة', bg: 'bg-rust-100', text: 'text-rust-700' },
 }
 
-// Task.status (backend TaskStatus enum) — 5 values, not 4. "NEW" replaces
-// the old "PENDING", and "WAITING" (blocked on something external) is new.
+// Task.status (backend TaskStatus enum) — 4 values: TODO/IN_PROGRESS/
+// COMPLETED/CANCELLED. "TODO" replaces the old "NEW", and "WAITING" was
+// dropped entirely.
 export const TASK_STATUS = {
-  NEW: { label: 'جديدة', bg: 'bg-ink-100', text: 'text-ink-600' },
+  TODO: { label: 'قيد الانتظار', bg: 'bg-ink-100', text: 'text-ink-600' },
   IN_PROGRESS: { label: 'قيد التنفيذ', bg: 'bg-brass-100', text: 'text-brass-700' },
-  WAITING: { label: 'بانتظار', bg: 'bg-paper-soft', text: 'text-ink-400' },
   COMPLETED: { label: 'مكتملة', bg: 'bg-emerald-100', text: 'text-emerald-700' },
   CANCELLED: { label: 'ملغاة', bg: 'bg-rust-100', text: 'text-rust-600' },
 }
-export const TASK_STATUS_COLUMNS = ['NEW', 'IN_PROGRESS', 'WAITING', 'COMPLETED', 'CANCELLED']
+export const TASK_STATUS_COLUMNS = ['TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']
 
-export const TASK_PRIORITY = CASE_PRIORITY
+// Task.priority (backend TaskPriority enum) — LOW/MEDIUM/HIGH/URGENT.
+// "MEDIUM" replaces the old "NORMAL".
+export const TASK_PRIORITY = {
+  LOW: { label: 'منخفضة', bg: 'bg-ink-50', text: 'text-ink-500', dot: 'bg-ink-300' },
+  MEDIUM: { label: 'متوسطة', bg: 'bg-brass-100', text: 'text-brass-700', dot: 'bg-brass-500' },
+  HIGH: { label: 'عالية', bg: 'bg-rust-100', text: 'text-rust-600', dot: 'bg-rust-500' },
+  URGENT: { label: 'عاجلة', bg: 'bg-rust-100', text: 'text-rust-700', dot: 'bg-rust-600' },
+}
 
 // Case finance status — derived client-side by financeApi.summary() per case
 // row (paid <= 0 ? 'UNPAID' : remaining > 0 ? 'PARTIAL' : 'PAID'). There is
@@ -185,9 +190,12 @@ export const EMPLOYEE_DEPARTMENT = {
 // ProvisionTenantDto.adminJobClassification.
 export const JOB_CLASSIFICATION = {
   LAWYER: 'محامي',
+  TRAINEE_LAWYER: 'محامي متدرب',
   SECRETARY: 'سكرتير',
   ACCOUNTANT: 'محاسب',
   ASSISTANT: 'مساعد',
+  LEGAL_RESEARCHER: 'باحث قانوني',
+  OFFICE_MANAGER: 'مدير المكتب',
   OTHER: 'أخرى',
 }
 

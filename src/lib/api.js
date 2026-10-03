@@ -176,15 +176,13 @@ export const authApi = {
 // / `DELETE /users/:id` don't exist on this backend. Accounts are created
 // through tenantsApi.provisionFirm (firm admins) or employeesApi.onboard
 // (employees); the only per-account admin action left is status management.
+// The backend only exposes /users/me now — the Super Admin's old
+// cross-firm roster (GET /users, status toggle, resend-activation) was
+// removed. The Super Admin can still see each firm's single admin contact
+// via tenantsApi.get(id), just not a full staff list or any status actions.
 export const usersApi = {
-  list: () => get('/users'), // Super Admin only
-  get: (id) => get(`/users/${id}`), // Super Admin only
   me: () => get('/users/me'),
-  updateMe: (data) => patch('/users/me', data), // UpdateProfileDto: fullName, avatarUrl, phone, preferredLanguage, themePreference, showRevenueWidget
-  updateStatus: (id, status) => patch(`/users/${id}/status`, { status }), // 'ACTIVE' | 'INACTIVE' — Super Admin only
-  // Issues a fresh 24h activation link and re-sends it — only valid while
-  // the account is still INVITED (400 otherwise). Super Admin only.
-  resendActivation: (id) => post(`/users/${id}/resend-activation`),
+  updateMe: (data) => patch('/users/me', data), // UpdateProfileDto: fullName, avatarUrl, phone
 }
 
 // ---- Permissions (the atomic codes an admin can grant — there is no Roles module) ----
@@ -254,16 +252,19 @@ export const notificationsApi = {
 
 // ---- Employees ----
 export const employeesApi = {
-  // OnboardEmployeeDto: email, fullName, jobClassification, hireDate,
-  // permissionKeys (required); phone, department, specializations (optional).
+  // OnboardEmployeeDto: email, password (set by the Firm Admin, no
+  // invitation email for employees), fullName, jobClassification, hireDate,
+  // permissionKeys (required); phone, department, specializationId,
+  // generalSpecialization (optional — exactly one of the two, only for
+  // LAWYER/TRAINEE_LAWYER).
   onboard: (data) => post('/employees/onboard', data),
   list: (filters) => get(`/employees${filters ? `?${new URLSearchParams(filters)}` : ''}`),
-  // Names + specializations only, readable by any firm member — use this for
+  // Names + specialization only, readable by any firm member — use this for
   // assignment pickers (lead lawyer, hearing/task assignee) instead of list(),
-  // which needs the HR permission employee.read.
+  // which needs the HR permission employee.view.
   directory: () => get('/employees/directory'),
   get: (id) => get(`/employees/${id}`),
-  update: (id, data) => patch(`/employees/${id}`, data), // position, department, hireDate, specializations
+  update: (id, data) => patch(`/employees/${id}`, data), // position, department, hireDate, specializationId, generalSpecialization
   remove: (id) => del(`/employees/${id}`),
   getPermissions: (id) => get(`/employees/${id}/permissions`),
   setPermissions: (id, permissionKeys) => patch(`/employees/${id}/permissions`, { permissionKeys }),

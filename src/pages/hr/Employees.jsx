@@ -54,15 +54,20 @@ export default function Employees() {
     }
   }
 
-  // OnboardEmployeeDto: email, fullName, jobClassification, hireDate,
-  // permissionKeys (required, may be empty); phone, department (optional).
-  // specializations only applies when jobClassification === 'LAWYER' — the
-  // backend rejects it otherwise (whitelist + a dedicated 400 check), so
-  // it's filtered out of the payload for non-lawyers in onSubmit below
-  // rather than gated in the form itself.
+  // OnboardEmployeeDto: email, password (set by the Firm Admin and shared
+  // out of band — there's no invitation email for employees anymore),
+  // fullName, jobClassification, hireDate, permissionKeys (required, may be
+  // empty); phone, department (optional). A Lawyer or Trainee Lawyer gets
+  // exactly ONE Case Type specialization, or GENERAL (every type) — never
+  // several, unlike the old multi-select — so it only appears once one of
+  // those classifications is picked instead of always showing with a
+  // footnote explaining it might not apply.
+  const GENERAL_SPECIALIZATION = 'GENERAL'
+  const requiresSpecialization = (values) => values.jobClassification === 'LAWYER' || values.jobClassification === 'TRAINEE_LAWYER'
   const createFields = [
     { name: 'fullName', label: 'الاسم الكامل', required: true },
     { name: 'email', label: 'البريد الإلكتروني', type: 'email', required: true },
+    { name: 'password', label: 'كلمة المرور المؤقتة (8+ حروف، تحتوي حرف كبير وصغير ورقم ورمز)', type: 'password', required: true },
     { name: 'phone', label: 'رقم الجوال' },
     {
       name: 'jobClassification',
@@ -74,15 +79,12 @@ export default function Employees() {
     { name: 'department', label: 'القسم', type: 'select', options: Object.entries(EMPLOYEE_DEPARTMENT).map(([value, label]) => ({ value, label })) },
     { name: 'hireDate', label: 'تاريخ الانضمام', type: 'date', required: true },
     {
-      name: 'specializations',
-      label: 'التخصصات (تخصص واحد على الأقل مطلوب)',
-      type: 'checkboxes',
-      options: (caseTypes ?? []).map((t) => ({ value: t.id, label: t.labelAr })),
-      // Only meaningful — and only accepted by the backend — when the new
-      // account is classified as a Lawyer, so it only appears once that's
-      // selected instead of always showing with a footnote explaining it
-      // might not apply.
-      visibleWhen: (values) => values.jobClassification === 'LAWYER',
+      name: 'specializationId',
+      label: 'التخصص',
+      type: 'select',
+      required: true,
+      options: [{ value: GENERAL_SPECIALIZATION, label: 'عام (جميع أنواع القضايا)' }, ...(caseTypes ?? []).map((t) => ({ value: t.id, label: t.labelAr }))],
+      visibleWhen: requiresSpecialization,
     },
     {
       name: 'permissionKeys',
@@ -110,17 +112,15 @@ export default function Employees() {
     { key: 'position', header: 'الوظيفة', sortable: false, render: (r) => EMPLOYEE_POSITION[r.position] ?? r.position },
     { key: 'department', header: 'القسم', sortable: false, render: (r) => EMPLOYEE_DEPARTMENT[r.department] ?? r.department ?? '—' },
     {
-      key: 'specializations',
-      header: 'التخصصات',
+      key: 'specialization',
+      header: 'التخصص',
       sortable: false,
       render: (r) =>
-        r.specializations?.length ? (
-          <span className="flex flex-wrap gap-1">
-            {r.specializations.map((id) => (
-              <span key={id} className="text-[10px] bg-brass-100 text-brass-700 px-2 py-0.5 rounded-full">
-                {caseTypeLabel[id] ?? id}
-              </span>
-            ))}
+        r.isGeneralSpecialization ? (
+          <span className="text-[10px] bg-brass-100 text-brass-700 px-2 py-0.5 rounded-full">عام</span>
+        ) : r.specializationId ? (
+          <span className="text-[10px] bg-brass-100 text-brass-700 px-2 py-0.5 rounded-full">
+            {caseTypeLabel[r.specializationId] ?? r.specializationId}
           </span>
         ) : (
           <span className="text-ink-300">بدون تخصص</span>
@@ -182,6 +182,7 @@ export default function Employees() {
         onSubmit={async (values) => {
           const payload = {
             email: values.email,
+            password: values.password,
             fullName: values.fullName,
             jobClassification: values.jobClassification,
             hireDate: values.hireDate,
@@ -189,8 +190,9 @@ export default function Employees() {
           }
           if (values.phone) payload.phone = values.phone
           if (values.department) payload.department = values.department
-          if (values.jobClassification === 'LAWYER' && values.specializations?.length) {
-            payload.specializations = values.specializations
+          if (requiresSpecialization(values)) {
+            if (values.specializationId === GENERAL_SPECIALIZATION) payload.generalSpecialization = true
+            else if (values.specializationId) payload.specializationId = values.specializationId
           }
           await employeesApi.onboard(payload)
           reload()

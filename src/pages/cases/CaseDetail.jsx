@@ -10,7 +10,7 @@ import Avatar from '../../components/ui/Avatar'
 import FormModal from '../../components/ui/FormModal'
 import Modal from '../../components/ui/Modal'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
-import { CASE_STATUS, CASE_PRIORITY, HEARING_STATUS, TASK_STATUS, TASK_PRIORITY, PARTY_TYPE, groupCaseCapabilities, summarizeGrantedCapabilities, PAYMENT_METHOD } from '../../data/enums'
+import { CASE_STATUS, HEARING_STATUS, TASK_STATUS, TASK_PRIORITY, PARTY_TYPE, groupCaseCapabilities, summarizeGrantedCapabilities, PAYMENT_METHOD } from '../../data/enums'
 import { casesApi, hearingsApi, documentsApi, tasksApi, financeApi, referenceApi, employeesApi, lookupsApi, downloadAuthedFile } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
@@ -586,7 +586,7 @@ function TasksTab({ caseId, employees }) {
         onClose={() => setShowCreate(false)}
         title="إضافة مهمة"
         fields={createFields}
-        initialValues={{ priority: 'NORMAL' }}
+        initialValues={{ priority: 'MEDIUM' }}
         onSubmit={async (values) => {
           await tasksApi.create({
             ...values,
@@ -715,11 +715,16 @@ function FinanceTab({ caseId }) {
   )
 }
 
-// A lawyer is any employee with at least one configured specialization —
-// mirrors the same rule NewCaseModal (Cases.jsx) uses and the backend
-// enforces server-side (CasesService.validatePrimaryLawyer).
+// A lawyer is any employee with a configured specialization (one specific
+// Case Type) or marked general — mirrors the same rule NewCaseModal
+// (Cases.jsx) uses and the backend enforces server-side
+// (CasesService.validatePrimaryLawyer).
 function isLawyer(employee) {
-  return Boolean(employee?.specializations?.length)
+  return Boolean(employee?.specializationId) || Boolean(employee?.isGeneralSpecialization)
+}
+
+function matchesCaseType(employee, caseTypeId) {
+  return Boolean(employee?.isGeneralSpecialization) || employee?.specializationId === caseTypeId
 }
 
 // Every field UpdateCaseDto accepts — including caseTypeId/primaryLawyerId/
@@ -740,7 +745,6 @@ function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
   const [courtCaseNumber, setCourtCaseNumber] = useState(caseItem.courtCaseNumber ?? '')
   const [courtCaseYear, setCourtCaseYear] = useState(caseItem.courtCaseYear ?? '')
   const [caseTypeId, setCaseTypeId] = useState(caseItem.caseTypeId ?? '')
-  const [priority, setPriority] = useState(caseItem.priority ?? 'NORMAL')
   const [openingDate, setOpeningDate] = useState((caseItem.openingDate ?? '').toString().slice(0, 10))
   const [agreedFee, setAgreedFee] = useState(caseItem.agreedFee ?? '')
   const [description, setDescription] = useState(caseItem.description ?? '')
@@ -765,7 +769,7 @@ function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
   )
 
   const selectableLawyers = useMemo(
-    () => (employees ?? []).filter((e) => isLawyer(e) && (!caseTypeId || e.specializations.includes(caseTypeId))),
+    () => (employees ?? []).filter((e) => isLawyer(e) && (!caseTypeId || matchesCaseType(e, caseTypeId))),
     [employees, caseTypeId]
   )
 
@@ -780,7 +784,6 @@ function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
         courtCaseNumber: courtCaseNumber || undefined,
         courtCaseYear: courtCaseYear ? Number(courtCaseYear) : undefined,
         caseTypeId: caseTypeId || undefined,
-        priority: priority || undefined,
         governorateId: governorateId || undefined,
         defaultCourtId: defaultCourtId || undefined,
         circuitId: circuitId || undefined,
@@ -818,12 +821,6 @@ function EditCaseModal({ open, onClose, caseItem, employees, onSaved }) {
             >
               <option value="">اختر...</option>
               {(caseTypes ?? []).map((t) => <option key={t.id} value={t.id}>{t.labelAr}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>الأولوية</label>
-            <select value={priority} onChange={(e) => setPriority(e.target.value)} className={inputClass}>
-              {Object.entries(CASE_PRIORITY).map(([value, v]) => <option key={value} value={value}>{v.label}</option>)}
             </select>
           </div>
           <div>
@@ -980,7 +977,6 @@ export default function CaseDetail() {
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <span className="font-mono text-sm text-ink-500">{caseItem.caseNumber}</span>
         <EnumBadge code={caseItem.status} map={CASE_STATUS} />
-        <EnumBadge code={caseItem.priority} map={CASE_PRIORITY} dot />
       </div>
 
       <div className="mb-4">

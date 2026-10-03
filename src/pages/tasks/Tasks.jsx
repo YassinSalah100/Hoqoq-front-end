@@ -15,15 +15,14 @@ import { hasPermission } from '../../data/auth'
 
 const PRIORITY_BORDER = {
   LOW: 'border-r-ink-300',
-  NORMAL: 'border-r-brass-400',
+  MEDIUM: 'border-r-brass-400',
   HIGH: 'border-r-rust-400',
   URGENT: 'border-r-rust-600',
 }
 
 const COLUMN_ACCENT = {
-  NEW: 'bg-ink-400',
+  TODO: 'bg-ink-400',
   IN_PROGRESS: 'bg-brass-500',
-  WAITING: 'bg-ink-300',
   COMPLETED: 'bg-emerald-500',
   CANCELLED: 'bg-rust-500',
 }
@@ -179,7 +178,7 @@ function TaskDetailModal({ task, onClose, canUpdate, canComplete, onChanged }) {
             {canUpdate && !completing && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-ink-400">تغيير الحالة:</span>
-                {['NEW', 'IN_PROGRESS', 'WAITING'].filter((s) => s !== task.status).map((s) => (
+                {['TODO', 'IN_PROGRESS'].filter((s) => s !== task.status).map((s) => (
                   <button
                     key={s}
                     disabled={saving}
@@ -305,7 +304,7 @@ export default function Tasks() {
           onClose={() => setShowCreate(false)}
           title="إضافة مهمة"
           fields={createFields}
-          initialValues={{ priority: 'NORMAL' }}
+          initialValues={{ priority: 'MEDIUM' }}
           onSubmit={async (values) => {
             // CreateTaskDto has no `assignedById` field — the backend derives
             // the assigner from the authenticated user, and the global

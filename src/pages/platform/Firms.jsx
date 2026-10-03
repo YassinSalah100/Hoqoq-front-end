@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Building2,
   Plus,
-  Users as UsersIcon,
   Mail,
-  ShieldCheck,
   ChevronLeft,
   X,
   CreditCard,
@@ -24,9 +22,8 @@ import StatCard from '../../components/ui/StatCard'
 import AuthedImage from '../../components/ui/AuthedImage'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
 import FormModal from '../../components/ui/FormModal'
-import { tenantsApi, usersApi, subscriptionsApi, permissionsApi } from '../../lib/api'
+import { tenantsApi, subscriptionsApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
-import { ACCOUNT_TYPE, JOB_CLASSIFICATION } from '../../data/enums'
 
 // Super Admin portal.
 //
@@ -82,22 +79,18 @@ function Pill({ className = '', children }) {
   return <span className={`inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium px-2.5 py-1 rounded-full ${className}`}>{children}</span>
 }
 
-// Tenant.subscriptions is the full version history; the one in effect is the
-// row that hasn't been superseded by a plan change or archived.
+// GET /tenants and GET /tenants/:id both already resolve the one
+// in-effect subscription server-side (TenantsService.findAll /
+// getPlatformOverview) — flattened onto each firm row as
+// `currentSubscription` by the mapping in Firms(), below.
 function currentSubscriptionOf(firm) {
-  return (firm?.subscriptions ?? []).find((s) => !s.supersededAt && !s.isArchived) ?? null
+  return firm?.currentSubscription ?? null
 }
 
 function formatDate(value) {
   if (!value) return '—'
   const d = new Date(value)
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
-}
-
-function memberRole(m) {
-  return m.accountType === 'EMPLOYEE' && m.jobClassification
-    ? JOB_CLASSIFICATION[m.jobClassification] ?? m.jobClassification
-    : ACCOUNT_TYPE[m.accountType] ?? m.accountType
 }
 
 function FirmLogo({ firm, size = 40 }) {
@@ -119,7 +112,9 @@ function FirmLogo({ firm, size = 40 }) {
 
 // A firm is "awaiting activation" until its owner has opened the emailed
 // link (owner INVITED) or its subscription is still PENDING — Tenant.status
-// alone is ACTIVE from the moment the firm is provisioned.
+// alone is ACTIVE from the moment the firm is provisioned. `owner` is
+// `firm.firmAdmin`, already included on every row by both GET /tenants and
+// GET /tenants/:id.
 function firmHealth(firm, owner) {
   const sub = currentSubscriptionOf(firm)
   if (firm.status !== 'ACTIVE') return 'suspended'
@@ -157,15 +152,19 @@ function DetailRow({ icon: Icon, label, children }) {
   )
 }
 
-function FirmDrawer({ firm, members, busy, onClose, onToggleWorkspace, onActivateSub, onDeactivateSub, onChangePlan }) {
+function FirmDrawer({ firm, busy, onClose, onToggleWorkspace, onActivateSub, onDeactivateSub, onChangePlan }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // firm.firmAdmin is the firm's own admin/owner contact — the Super
+  // Admin's visibility into a firm's accounts is deliberately narrowed to
+  // just "who owns this firm", never a roster of everyone who works there.
+  const owner = firm.firmAdmin ?? null
+
   const sub = currentSubscriptionOf(firm)
-  const owner = members.find((m) => m.id === firm.ownerUserId)
   const health = firmHealth(firm, owner)
   const subStyle = SUBSCRIPTION_STATUS[sub?.status]
   const price = sub?.plan
@@ -240,8 +239,11 @@ function FirmDrawer({ firm, members, busy, onClose, onToggleWorkspace, onActivat
           </section>
 
           <section className="bg-white rounded-xl border border-paper-line shadow-card px-5 py-2">
-            <div className="py-3 border-b border-paper-line">
+            <div className="flex items-center justify-between py-3 border-b border-paper-line">
               <h3 className="text-[14px] font-semibold text-ink-800">بيانات المكتب</h3>
+              {owner && USER_STATUS_STYLE[owner.status] && (
+                <Pill className={USER_STATUS_STYLE[owner.status].cls}>{USER_STATUS_STYLE[owner.status].label}</Pill>
+              )}
             </div>
             <DetailRow icon={UserRound} label="المالك">{owner?.fullName || owner?.email || '—'}</DetailRow>
             <DetailRow icon={Mail} label="بريد المالك">
@@ -250,43 +252,8 @@ function FirmDrawer({ firm, members, busy, onClose, onToggleWorkspace, onActivat
             <DetailRow icon={Clock} label="تاريخ التسجيل">{formatDate(firm.createdAt)}</DetailRow>
           </section>
 
-          <section className="bg-white rounded-xl border border-paper-line shadow-card">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
-              <h3 className="text-[14px] font-semibold text-ink-800">حسابات المكتب</h3>
-              <span className="text-[12px] text-ink-400">{members.length} حساب</span>
-            </div>
-            {members.length ? (
-              <ul>
-                {members.map((m) => {
-                  const isOwner = m.id === firm.ownerUserId
-                  const st = USER_STATUS_STYLE[m.status]
-                  return (
-                    <li key={m.id} className="flex items-center gap-3 px-5 py-3 border-b border-paper-line last:border-0">
-                      <div className="w-9 h-9 rounded-full bg-brass-100 text-brass-700 flex items-center justify-center text-[13px] font-semibold shrink-0">
-                        {(m.fullName || m.email || '?').trim().charAt(0)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="flex items-center gap-1.5 text-[14px] font-medium text-ink-800 truncate">
-                          {m.fullName || m.email}
-                          {isOwner && <ShieldCheck size={14} className="text-brass-600 shrink-0" />}
-                        </p>
-                        <p className="text-[12px] text-ink-400 truncate" dir="ltr" style={{ textAlign: 'right' }}>{m.email}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className="text-[12px] text-ink-500">{isOwner ? 'مالك المكتب' : memberRole(m)}</span>
-                        {st && m.status !== 'ACTIVE' && <Pill className={st.cls}>{st.label}</Pill>}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : (
-              <p className="px-5 py-6 text-[13px] text-ink-400 text-center">لا توجد حسابات لهذا المكتب بعد</p>
-            )}
-          </section>
-
           <p className="text-[12px] text-ink-300 text-center">
-            حسابات المحامين والسكرتارية يُنشئها مالك المكتب من داخل مساحة عمله.
+            حسابات المحامين والسكرتارية والصلاحيات يديرها مالك المكتب من داخل مساحة عمله — المنصة لا تعرض إلا بيانات المالك.
           </p>
         </div>
       </aside>
@@ -310,37 +277,25 @@ export default function Firms() {
   const [changingPlanForId, setChangingPlanForId] = useState(null)
 
   const { data: firms, loading, error, reload } = useFetch(() => tenantsApi.list(), [])
-  const { data: users, reload: reloadUsers } = useFetch(() => usersApi.list(), [])
   const { data: plans } = useFetch(() => subscriptionsApi.listPlans(), [])
-  // Full permission catalog, so a newly provisioned firm owner gets full run
-  // of their own firm by default.
-  const { data: permissionCatalog } = useFetch(() => permissionsApi.catalog(), [])
-  const ownerPermissionKeys = useMemo(
-    () => (permissionCatalog?.codes ?? []).filter((code) => !code.startsWith('platform.')),
-    [permissionCatalog]
-  )
 
-  const firmRows = useMemo(() => (Array.isArray(firms) ? firms : firms?.items ?? []), [firms])
-  const userRows = useMemo(() => (Array.isArray(users) ? users : users?.items ?? []), [users])
-
-  const usersByFirm = useMemo(() => {
-    const map = {}
-    userRows.forEach((u) => {
-      const id = u.tenant?.id
-      if (!id) return
-      ;(map[id] ??= []).push(u)
-    })
-    return map
-  }, [userRows])
+  // GET /tenants returns one row per firm shaped as
+  // { firm, firmAdmin, currentSubscription } (TenantsService.findAll) —
+  // flatten that into a single object per firm so the rest of this page can
+  // read firm.id/name/... directly, with firmAdmin/currentSubscription
+  // carried along as extra properties.
+  const firmRows = useMemo(() => {
+    const rows = Array.isArray(firms) ? firms : firms?.items ?? []
+    return rows.map((row) => ({ ...row.firm, firmAdmin: row.firmAdmin, currentSubscription: row.currentSubscription }))
+  }, [firms])
 
   const healthById = useMemo(() => {
     const map = {}
     firmRows.forEach((f) => {
-      const owner = (usersByFirm[f.id] ?? []).find((m) => m.id === f.ownerUserId)
-      map[f.id] = firmHealth(f, owner)
+      map[f.id] = firmHealth(f, f.firmAdmin)
     })
     return map
-  }, [firmRows, usersByFirm])
+  }, [firmRows])
 
   const counts = useMemo(() => {
     const c = { all: firmRows.length, active: 0, pending: 0, inactive: 0 }
@@ -371,7 +326,6 @@ export default function Firms() {
     try {
       await fn()
       reload()
-      reloadUsers()
     } catch (err) {
       alert(err.message ?? failMessage)
     } finally {
@@ -407,11 +361,13 @@ export default function Firms() {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* The Super Admin can no longer pull every account across every firm
+          (GET /users is gone — see Users.jsx), so there's no "total
+          accounts" figure left to show here. */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <StatCard label="إجمالي المكاتب" value={counts.all} icon="Building2" accent="gold" />
         <StatCard label="مكاتب نشطة" value={counts.active} icon="CheckCircle2" accent="gold" />
         <StatCard label="في انتظار التفعيل" value={counts.pending} icon="Clock" accent="ink" />
-        <StatCard label="إجمالي الحسابات" value={userRows.filter((u) => u.tenant).length} icon="Users" accent="ink" />
       </div>
 
       <div className="bg-white rounded-xl border border-paper-line shadow-card overflow-hidden">
@@ -450,22 +406,21 @@ export default function Firms() {
         {!loading && !error && (
           filtered.length ? (
             <>
-              <div className="hidden md:grid grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_90px_28px] gap-4 px-5 py-2.5 bg-paper text-[12px] font-medium text-ink-400">
+              <div className="hidden md:grid grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_110px_28px] gap-4 px-5 py-2.5 bg-paper text-[12px] font-medium text-ink-400">
                 <span>المكتب</span>
                 <span>الخطة</span>
                 <span>الحالة</span>
-                <span>الحسابات</span>
+                <span>تاريخ التسجيل</span>
                 <span />
               </div>
               <ul>
                 {filtered.map((firm) => {
-                  const members = usersByFirm[firm.id] ?? []
                   const sub = currentSubscriptionOf(firm)
                   return (
                     <li key={firm.id}>
                       <button
                         onClick={() => setSelectedId(firm.id)}
-                        className="group w-full text-right grid grid-cols-[minmax(0,1fr)_28px] md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_90px_28px] items-center gap-4 px-5 py-4 border-t border-paper-line hover:bg-brass-50/60 transition-colors"
+                        className="group w-full text-right grid grid-cols-[minmax(0,1fr)_28px] md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_110px_28px] items-center gap-4 px-5 py-4 border-t border-paper-line hover:bg-brass-50/60 transition-colors"
                       >
                         <span className="flex items-center gap-3 min-w-0">
                           <FirmLogo firm={firm} />
@@ -483,10 +438,7 @@ export default function Firms() {
                         <span className="hidden md:block">
                           <HealthPill health={healthById[firm.id]} />
                         </span>
-                        <span className="hidden md:flex items-center gap-1.5 text-[13px] text-ink-500">
-                          <UsersIcon size={14} className="text-ink-300" />
-                          {members.length}
-                        </span>
+                        <span className="hidden md:block text-[13px] text-ink-500 font-mono">{formatDate(firm.createdAt)}</span>
                         <ChevronLeft size={18} className="text-ink-300 group-hover:text-brass-600 transition-colors" />
                       </button>
                     </li>
@@ -510,7 +462,6 @@ export default function Firms() {
       {selectedFirm && (
         <FirmDrawer
           firm={selectedFirm}
-          members={usersByFirm[selectedFirm.id] ?? []}
           busy={busy}
           onClose={() => setSelectedId(null)}
           onToggleWorkspace={() => toggleWorkspace(selectedFirm)}
@@ -529,10 +480,12 @@ export default function Firms() {
         initialValues={{ planId: plans?.[0]?.id, billingCycle: 'MONTHLY' }}
         onSubmit={async (values) => {
           try {
+            // provisionTenant's DTO no longer accepts permissionKeys — the
+            // Firm Admin always gets unconditional access to their own firm
+            // (see AuthorizationService), so there's nothing left to grant.
             await tenantsApi.provisionFirm({
               ...values,
               adminJobClassification: 'OTHER',
-              permissionKeys: ownerPermissionKeys,
             })
           } catch (err) {
             if (err.message === 'A firm with this name already exists') {
@@ -544,7 +497,6 @@ export default function Firms() {
             throw err
           }
           reload()
-          reloadUsers()
         }}
       />
 

@@ -32,7 +32,6 @@ const NAV_GROUPS = [
     title: 'إدارة المنصة',
     items: [
       { label: 'المكاتب', to: '/firms', key: 'firms', icon: Building2 },
-      { label: 'حسابات المنصة', to: '/users', key: 'users', icon: UserCog },
     ],
   },
   {

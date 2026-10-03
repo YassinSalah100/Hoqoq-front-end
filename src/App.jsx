@@ -21,7 +21,6 @@ import Expenses from './pages/finance/Expenses'
 import FinanceReports from './pages/finance/FinanceReports'
 import Employees from './pages/hr/Employees'
 import Roles from './pages/hr/Roles'
-import Users from './pages/platform/Users'
 import Firms from './pages/platform/Firms'
 import Settings from './pages/settings/Settings'
 import Subscription from './pages/settings/Subscription'
@@ -52,7 +51,6 @@ function Shell() {
 
         {/* Platform administration (Super Admin) */}
         <Route path="firms" element={<Firms />} />
-        <Route path="users" element={<Users />} />
 
         {/* Firm workspace */}
         <Route path="dashboard" element={<Dashboard />} />

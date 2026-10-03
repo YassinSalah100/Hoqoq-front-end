@@ -12,7 +12,7 @@ import EmptyState from '../../components/ui/EmptyState'
 // neither of which a flat field-list form can express. See NewCaseModal.
 import Modal from '../../components/ui/Modal'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
-import { CASE_STATUS, CASE_PRIORITY, PARTY_TYPE } from '../../data/enums'
+import { CASE_STATUS, PARTY_TYPE } from '../../data/enums'
 import { casesApi, referenceApi, employeesApi, reportsApi, downloadAuthedFile } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
@@ -37,14 +37,18 @@ function SectionHeader({ icon: Icon, title, aside }) {
   )
 }
 
-// A lawyer is any employee with at least one configured specialization —
-// EmployeeResponseDto doesn't expose jobClassification at all, but the
-// backend only ever lets a LAWYER account have specializations (enforced at
-// onboarding: a Lawyer must have >=1, anyone else must have none), so this
-// is a reliable stand-in. Matches the same rule the backend enforces when a
+// A lawyer is any employee with a configured specialization (one specific
+// Case Type) or marked general — EmployeeResponseDto doesn't expose
+// jobClassification at all, but the backend only ever lets a LAWYER/TRAINEE
+// account have either (enforced at onboarding), so this is a reliable
+// stand-in. Matches the same rule the backend enforces when a
 // primaryLawyerId is submitted (CasesService.validatePrimaryLawyer).
 function isLawyer(employee) {
-  return Boolean(employee?.specializations?.length)
+  return Boolean(employee?.specializationId) || Boolean(employee?.isGeneralSpecialization)
+}
+
+function matchesCaseType(employee, caseTypeId) {
+  return Boolean(employee?.isGeneralSpecialization) || employee?.specializationId === caseTypeId
 }
 
 // Case creation embeds the client (required) and opponents (optional) as
@@ -56,7 +60,6 @@ function NewCaseModal({ open, onClose, onCreated, caseTypes, employees }) {
   const [courtCaseNumber, setCourtCaseNumber] = useState('')
   const [courtCaseYear, setCourtCaseYear] = useState('')
   const [caseTypeId, setCaseTypeId] = useState('')
-  const [priority, setPriority] = useState('NORMAL')
   const [openingDate, setOpeningDate] = useState('')
   const [agreedFee, setAgreedFee] = useState('')
   const [description, setDescription] = useState('')
@@ -97,7 +100,7 @@ function NewCaseModal({ open, onClose, onCreated, caseTypes, employees }) {
   // submit. No case type chosen yet means no lawyer can legally be picked
   // either (the backend requires caseTypeId first).
   const selectableLawyers = useMemo(
-    () => (employees ?? []).filter((e) => isLawyer(e) && (!caseTypeId || e.specializations.includes(caseTypeId))),
+    () => (employees ?? []).filter((e) => isLawyer(e) && (!caseTypeId || matchesCaseType(e, caseTypeId))),
     [employees, caseTypeId]
   )
 
@@ -112,7 +115,7 @@ function NewCaseModal({ open, onClose, onCreated, caseTypes, employees }) {
 
   function resetAndClose() {
     setCaseNumber(''); setTitle(''); setCourtCaseNumber(''); setCourtCaseYear(''); setCaseTypeId('')
-    setPriority('NORMAL'); setOpeningDate(''); setAgreedFee(''); setDescription('')
+    setOpeningDate(''); setAgreedFee(''); setDescription('')
     setGovernorateId(''); setDefaultCourtId(''); setCircuitId(''); setPrimaryLawyerId('')
     setClient({ clientType: 'INDIVIDUAL', name: '', nationalId: '', registrationNo: '', phone: '', email: '', address: '', notes: '' })
     setOpponents([]); setShowOpponentForm(false); setOpponentDraft({ opponentType: 'INDIVIDUAL', name: '', contact: '', representative: '', notes: '' })
@@ -158,7 +161,6 @@ function NewCaseModal({ open, onClose, onCreated, caseTypes, employees }) {
         ...(openingDate && { openingDate }),
         ...(description.trim() && { description: description.trim() }),
         ...(agreedFee && { agreedFee: Number(agreedFee) }),
-        priority,
         client: {
           clientType: client.clientType,
           name: client.name.trim(),
@@ -210,12 +212,6 @@ function NewCaseModal({ open, onClose, onCreated, caseTypes, employees }) {
               <select value={caseTypeId} onChange={(e) => setCaseTypeId(e.target.value)} className={inputClass}>
                 <option value="">اختر...</option>
                 {(caseTypes ?? []).map((t) => <option key={t.id} value={t.id}>{t.labelAr}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>الأولوية</label>
-              <select value={priority} onChange={(e) => setPriority(e.target.value)} className={inputClass}>
-                {Object.entries(CASE_PRIORITY).map(([value, v]) => <option key={value} value={value}>{v.label}</option>)}
               </select>
             </div>
             <div>
@@ -493,8 +489,7 @@ export default function Cases() {
                 </p>
               </div>
 
-              <div className="flex items-center justify-between border-t border-paper-line pt-3 mt-auto text-xs">
-                <EnumBadge code={c.priority} map={CASE_PRIORITY} dot />
+              <div className="flex items-center justify-end border-t border-paper-line pt-3 mt-auto text-xs">
                 <span className="font-mono text-ink-400">{(c.openingDate ?? '').toString().slice(0, 10)}</span>
               </div>
             </div>
