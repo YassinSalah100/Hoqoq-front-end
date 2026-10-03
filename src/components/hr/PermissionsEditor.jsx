@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Info } from 'lucide-react'
 import Button from '../ui/Button'
 import { LoadingBlock, ErrorBlock } from '../ui/AsyncState'
 import { employeesApi, permissionsApi } from '../../lib/api'
@@ -72,6 +73,16 @@ export default function PermissionsEditor({ employee, onSaved, onCancel }) {
 
       {!loading && !loadError && (
         <>
+          {/* BR-002: case-level permissions are only half of an employee's
+              access — the other half is being added to a specific case. */}
+          <div className="flex items-start gap-2.5 rounded-xl border border-brass-200 bg-brass-50 px-4 py-3 mb-5 text-[13px] text-ink-700 leading-relaxed">
+            <Info size={16} className="text-brass-600 shrink-0 mt-0.5" />
+            <p>
+              صلاحيات القضايا والموكلين والخصوم والجلسات والمستندات والمهام تحدد <strong>ما يمكن للموظف فعله</strong>، لكنها
+              تعمل فقط على القضايا التي <strong>يُضاف إليها</strong>: إما بتعيينه المحامي المسؤول عن القضية، أو بإضافته من تبويب
+              «الفريق» داخل القضية. اللوحة الرئيسية والتقويم متاحان لكل موظف ويعرضان أعماله فقط.
+            </p>
+          </div>
           {grouped.length === 0 ? (
             <p className="text-sm text-ink-400 py-10 text-center">لا توجد صلاحيات متاحة للمنح حالياً</p>
           ) : (

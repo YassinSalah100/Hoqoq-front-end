@@ -137,9 +137,19 @@ const CAPABILITY_GROUP_LABELS = {
 // same shape as permissionCatalog.js's groupPermissionCodes, used by
 // FormModal's 'grouped-checkboxes' field type. A flat 33-item wall of pills
 // (the previous rendering) was hard to scan when granting per-case access.
-export function groupCaseCapabilities() {
+// Account permission that backs each case capability (mirrors the backend's
+// CAPABILITY_BASE_PERMISSION) — document.edit is covered by document.manage.
+export function basePermissionForCapability(code) {
+  return code === 'document.edit' ? 'document.manage' : code
+}
+
+// `accountPermissions` (optional): only offer capabilities the employee holds
+// on their account — a case grant can't add access (PRD BR-002).
+export function groupCaseCapabilities(accountPermissions) {
+  const allowed = accountPermissions ? new Set(accountPermissions) : null
   const map = {}
   Object.entries(CASE_CAPABILITIES).forEach(([code, label]) => {
+    if (allowed && !allowed.has(basePermissionForCapability(code))) return
     const group = code.split('.')[0]
     map[group] = map[group] ?? []
     map[group].push({ value: code, label })

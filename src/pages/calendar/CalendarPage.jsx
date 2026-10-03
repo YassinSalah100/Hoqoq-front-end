@@ -82,14 +82,17 @@ export default function CalendarPage() {
   const [cursor, setCursor] = useState({ year: today.getFullYear(), month: today.getMonth() })
   const [selectedDay, setSelectedDay] = useState(today.getDate())
   const [showCreate, setShowCreate] = useState(false)
-  const canManage = hasPermission(currentUser, 'calendar.manage')
+  // Custom events are personal (the backend scopes them to the creator), so
+  // every signed-in member may add their own.
+  const canManage = Boolean(currentUser)
 
   const { data, loading, error, reload } = useFetch(() => calendarApi.timeline(), [])
   const items = useMemo(() => (Array.isArray(data) ? data : data?.items ?? []), [data])
   // Timeline HEARING/SERVICE/MEETING/TASK items only carry a caseId, not an
   // embedded case — resolved client-side the same way Hearings.jsx/Tasks.jsx
   // resolve caseId → case number.
-  const { data: casesAll } = useFetch(() => casesApi.list(), [])
+  const canViewCases = hasPermission(currentUser, 'case.view')
+  const { data: casesAll } = useFetch(() => (canViewCases ? casesApi.list() : Promise.resolve([])), [canViewCases])
   const casesById = useMemo(() => Object.fromEntries((casesAll ?? []).map((c) => [c.id, c])), [casesAll])
 
   const cells = useMemo(() => buildGrid(cursor.year, cursor.month), [cursor])

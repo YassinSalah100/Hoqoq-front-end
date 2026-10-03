@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Download, Briefcase, Landmark, User, X, UserPlus, FileText, UserX as UserXIcon, UserCog } from 'lucide-react'
+import { Plus, Download, Briefcase, Landmark, User, X, UserPlus, FileText, UserX as UserXIcon, UserCog, List, LayoutGrid, CalendarDays, ChevronLeft } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import Tabs from '../../components/ui/Tabs'
 import SearchInput from '../../components/ui/SearchInput'
-import EnumBadge from '../../components/ui/EnumBadge'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 // A custom modal (not the generic FormModal) — the court picker cascades
@@ -12,11 +11,11 @@ import EmptyState from '../../components/ui/EmptyState'
 // neither of which a flat field-list form can express. See NewCaseModal.
 import Modal from '../../components/ui/Modal'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
-import { CASE_STATUS, PARTY_TYPE } from '../../data/enums'
+import { CASE_STATUS, PARTY_TYPE, primaryClientOf } from '../../data/enums'
 import { casesApi, referenceApi, employeesApi, reportsApi, downloadAuthedFile } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
-import { hasPermission } from '../../data/auth'
+import { hasPermission, isFirmAdmin } from '../../data/auth'
 
 const STATUS_TABS = Object.keys(CASE_STATUS)
 const inputClass =
@@ -456,6 +455,190 @@ function NewCaseModal({ open, onClose, onCreated, caseTypes, employees }) {
   )
 }
 
+// Accent colour per status — the strip on cards and the dot in the table.
+const STATUS_ACCENT = {
+  DRAFT: { strip: 'bg-ink-300', dot: 'bg-ink-300' },
+  ACTIVE: { strip: 'bg-emerald-500', dot: 'bg-emerald-500' },
+  ON_HOLD: { strip: 'bg-brass-500', dot: 'bg-brass-500' },
+  CLOSED: { strip: 'bg-ink-500', dot: 'bg-ink-500' },
+  ARCHIVED: { strip: 'bg-ink-200', dot: 'bg-ink-300' },
+}
+
+const VIEW_STORAGE_KEY = 'hoqooq.cases.view'
+
+function readSavedView() {
+  try {
+    return localStorage.getItem(VIEW_STORAGE_KEY) === 'cards' ? 'cards' : 'table'
+  } catch {
+    return 'table'
+  }
+}
+
+function formatDate(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function courtCaseRef(c) {
+  if (!c.courtCaseNumber && !c.courtCaseYear) return null
+  return `رقم ${c.courtCaseNumber ?? '—'} لسنة ${c.courtCaseYear ?? '—'}`
+}
+
+function StatusPill({ status }) {
+  const entry = CASE_STATUS[status] ?? { label: status, bg: 'bg-paper-soft', text: 'text-ink-500' }
+  return (
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium ${entry.bg} ${entry.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${STATUS_ACCENT[status]?.dot ?? 'bg-ink-300'}`} />
+      {entry.label}
+    </span>
+  )
+}
+
+function LawyerChip({ name }) {
+  if (!name) return <span className="text-ink-300">—</span>
+  return (
+    <span className="inline-flex items-center gap-2 min-w-0">
+      <span className="w-6 h-6 rounded-full bg-brass-100 text-brass-700 text-[11px] font-semibold flex items-center justify-center shrink-0">
+        {name.trim().charAt(0)}
+      </span>
+      <span className="truncate">{name}</span>
+    </span>
+  )
+}
+
+function CasesTable({ rows, lawyerName, onOpen }) {
+  return (
+    <div className="bg-white rounded-xl border border-paper-line shadow-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-paper text-[12px] text-ink-400 text-right">
+              <th className="font-medium px-5 py-3">القضية</th>
+              <th className="font-medium px-4 py-3">الموكل</th>
+              <th className="font-medium px-4 py-3 hidden md:table-cell">النوع</th>
+              <th className="font-medium px-4 py-3 hidden lg:table-cell">المحكمة</th>
+              <th className="font-medium px-4 py-3 hidden lg:table-cell">المحامي المسؤول</th>
+              <th className="font-medium px-4 py-3">الحالة</th>
+              <th className="font-medium px-4 py-3 hidden md:table-cell">تاريخ الفتح</th>
+              <th className="w-8" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((c) => {
+              const client = primaryClientOf(c)
+              const extraClients = Math.max((c.clients?.length ?? 0) - 1, 0)
+              return (
+                <tr
+                  key={c.id}
+                  onClick={() => onOpen(c)}
+                  className="group border-t border-paper-line cursor-pointer hover:bg-brass-50/60 transition-colors"
+                >
+                  <td className="px-5 py-3.5 max-w-[260px]">
+                    <p className="font-semibold text-ink-800 truncate">{c.title || '—'}</p>
+                    <p className="font-mono text-[11px] text-ink-400 truncate" dir="ltr" style={{ textAlign: 'right' }}>{c.caseNumber}</p>
+                  </td>
+                  <td className="px-4 py-3.5 text-ink-700 max-w-[180px]">
+                    {client ? (
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{client.name}</span>
+                        {extraClients > 0 && <span className="text-[11px] text-ink-400 shrink-0">+{extraClients}</span>}
+                      </span>
+                    ) : (
+                      <span className="text-ink-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3.5 text-ink-600 hidden md:table-cell whitespace-nowrap">{c.caseType?.nameAr ?? '—'}</td>
+                  <td className="px-4 py-3.5 hidden lg:table-cell max-w-[220px]">
+                    <p className="text-ink-600 truncate">{c.defaultCourt?.nameAr ?? '—'}</p>
+                    {courtCaseRef(c) && <p className="text-[11px] text-ink-400 truncate">{courtCaseRef(c)}</p>}
+                  </td>
+                  <td className="px-4 py-3.5 text-ink-600 hidden lg:table-cell max-w-[180px]">
+                    <LawyerChip name={lawyerName(c)} />
+                  </td>
+                  <td className="px-4 py-3.5"><StatusPill status={c.status} /></td>
+                  <td className="px-4 py-3.5 text-ink-500 text-xs hidden md:table-cell whitespace-nowrap">{formatDate(c.openingDate)}</td>
+                  <td className="px-3 py-3.5">
+                    <ChevronLeft size={16} className="text-ink-300 group-hover:text-brass-600 transition-colors" />
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function CaseCard({ c, lawyerName, onOpen }) {
+  const client = primaryClientOf(c)
+  const ref = courtCaseRef(c)
+  return (
+    <div
+      onClick={() => onOpen(c)}
+      className="relative bg-white rounded-xl shadow-card border border-paper-line flex flex-col cursor-pointer overflow-hidden hover:border-brass-500/40 hover:shadow-pop transition-all"
+    >
+      <span className={`absolute inset-y-0 right-0 w-1 ${STATUS_ACCENT[c.status]?.strip ?? 'bg-ink-300'}`} />
+      <div className="p-5 pr-6 flex flex-col flex-1">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <StatusPill status={c.status} />
+          <span className="font-mono text-[11px] text-ink-400 truncate" dir="ltr">{c.caseNumber}</span>
+        </div>
+
+        <p className="font-semibold text-ink-800 text-[15px] leading-snug mb-3 line-clamp-2">{c.title || '—'}</p>
+
+        <div className="space-y-1.5 text-[13px] text-ink-500 mb-4">
+          <p className="flex items-center gap-2 min-w-0">
+            <User size={13} className="shrink-0 text-ink-300" />
+            <span className="truncate">{client ? client.name : <span className="text-ink-300">بدون موكل</span>}</span>
+          </p>
+          <p className="flex items-start gap-2 min-w-0">
+            <Landmark size={13} className="shrink-0 text-ink-300 mt-0.5" />
+            <span className="min-w-0">
+              <span className="block truncate">{c.defaultCourt?.nameAr ?? '—'}</span>
+              {ref && <span className="block text-[11px] text-ink-400">{ref}</span>}
+            </span>
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 border-t border-paper-line pt-3 mt-auto text-xs text-ink-500">
+          <LawyerChip name={lawyerName(c)} />
+          <span className="flex items-center gap-3 shrink-0">
+            <span className="flex items-center gap-1"><FileText size={12} className="text-ink-300" />{c.caseType?.nameAr ?? '—'}</span>
+            <span className="flex items-center gap-1"><CalendarDays size={12} className="text-ink-300" />{formatDate(c.openingDate)}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ViewToggle({ view, onChange }) {
+  const options = [
+    { value: 'table', label: 'جدول', icon: List },
+    { value: 'cards', label: 'بطاقات', icon: LayoutGrid },
+  ]
+  return (
+    <div className="inline-flex rounded-lg border border-paper-line bg-white p-0.5">
+      {options.map(({ value, label, icon: Icon }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => onChange(value)}
+          aria-pressed={view === value}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] transition-colors ${
+            view === value ? 'bg-ink-800 text-white' : 'text-ink-500 hover:bg-paper-soft'
+          }`}
+        >
+          <Icon size={14} />
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function Cases() {
   const navigate = useNavigate()
   const { currentUser } = useAuth()
@@ -463,12 +646,29 @@ export default function Cases() {
   const [query, setQuery] = useState('')
   const [exporting, setExporting] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
+  const [view, setView] = useState(readSavedView)
+
+  function changeView(next) {
+    setView(next)
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, next)
+    } catch {
+      // storage unavailable — the choice just won't be remembered
+    }
+  }
 
   const { data: cases, loading, error, reload } = useFetch(() => casesApi.list(), [])
   const { data: caseTypes } = useFetch(() => referenceApi.caseTypes(), [])
   const { data: employees } = useFetch(() => employeesApi.directory(), [])
   const rows = useMemo(() => (Array.isArray(cases) ? cases : cases?.items ?? []), [cases])
   const canCreateCase = hasPermission(currentUser, 'case.create')
+
+  const lawyerNames = useMemo(
+    () => Object.fromEntries((employees ?? []).filter((e) => e.user).map((e) => [e.user.id, e.user.fullName ?? e.user.email])),
+    [employees]
+  )
+  const lawyerName = (c) => (c.primaryLawyerId ? lawyerNames[c.primaryLawyerId] ?? null : null)
+  const openCase = (c) => navigate(`/cases/${c.id}`)
 
   const tabs = useMemo(
     () => [
@@ -529,7 +729,11 @@ export default function Cases() {
         employees={employees}
         onCreated={(created) => {
           reload()
-          if (created?.id) navigate(`/cases/${created.id}`)
+          // Creating a case doesn't grant access to it (PRD AC-005) — an
+          // employee can only open it if they made themselves its owner.
+          const canOpen = isFirmAdmin(currentUser) || created?.primaryLawyerId === currentUser?.id
+          if (created?.id && canOpen) navigate(`/cases/${created.id}`)
+          else if (created?.id) alert('تم إنشاء القضية. ستتمكن من فتحها بعد إضافتك لفريقها أو تعيينك محامياً مسؤولاً عنها.')
         }}
       />
 
@@ -539,56 +743,42 @@ export default function Cases() {
         </div>
       )}
 
-      <SearchInput
-        placeholder="بحث بالرقم أو العنوان..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="max-w-xs mb-6"
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <SearchInput
+          placeholder="بحث بالرقم أو العنوان أو اسم الموكل..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full sm:max-w-sm"
+        />
+        <div className="flex items-center gap-3">
+          {!loading && !error && <span className="text-xs text-ink-400">{filtered.length} قضية</span>}
+          <ViewToggle view={view} onChange={changeView} />
+        </div>
+      </div>
 
       {loading && <LoadingBlock label="جاري تحميل القضايا..." />}
       {error && <ErrorBlock error={error} onRetry={reload} />}
 
       {!loading && !error && (filtered.length ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((c) => (
-            <div
-              key={c.id}
-              onClick={() => navigate(`/cases/${c.id}`)}
-              className="bg-white rounded-xl p-5 shadow-card border border-paper-line flex flex-col cursor-pointer hover:border-brass-500/40 hover:shadow-pop transition-all"
-            >
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2.5 rounded-xl bg-ink-800 text-white shrink-0">
-                    <Briefcase size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-ink-800 truncate font-mono">{c.caseNumber}</p>
-                    {c.title && <p className="text-xs text-ink-400 truncate">{c.title}</p>}
-                  </div>
-                </div>
-                <EnumBadge code={c.status} map={CASE_STATUS} />
-              </div>
-
-              <div className="space-y-1.5 text-sm text-ink-500 mb-4">
-                <p className="flex items-center gap-2 truncate">
-                  <FileText size={12} className="shrink-0" /> {c.caseType?.nameAr ?? '—'}
-                </p>
-                <p className="flex items-center gap-2 truncate">
-                  <Landmark size={12} className="shrink-0" /> {c.defaultCourt?.nameAr ?? '—'}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end border-t border-paper-line pt-3 mt-auto text-xs">
-                <span className="font-mono text-ink-400">{(c.openingDate ?? '').toString().slice(0, 10)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        view === 'table' ? (
+          <CasesTable rows={filtered} lawyerName={lawyerName} onOpen={openCase} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map((c) => (
+              <CaseCard key={c.id} c={c} lawyerName={lawyerName} onOpen={openCase} />
+            ))}
+          </div>
+        )
+      ) : rows.length ? (
+        <p className="py-12 text-center text-sm text-ink-400">لا توجد قضايا تطابق البحث</p>
       ) : (
         <EmptyState
           icon={Briefcase}
-          message="لا توجد قضايا حتى الآن"
+          message={
+            isFirmAdmin(currentUser)
+              ? 'لا توجد قضايا حتى الآن'
+              : 'لا توجد قضايا بعد — ستظهر هنا القضايا التي أنت المحامي المسؤول عنها أو المضاف إلى فريقها'
+          }
           actionLabel={canCreateCase ? 'إنشاء قضية جديدة' : undefined}
           onAction={canCreateCase ? () => setShowCreate(true) : undefined}
         />

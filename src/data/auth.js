@@ -33,20 +33,22 @@ const FIRM_ADMIN_ONLY = 'FIRM_ADMIN_ONLY'
 // Every sidebar route mapped to the exact backend permission code that gates
 // it (see permissions.constant.ts). `null` = any firm member.
 const SIDEBAR_PERMISSION = {
-  dashboard: 'dashboard.read',
+  // Every employee has a personal dashboard and a calendar of their own
+  // assigned work (PRD §7.3, §7.8) — the backend scopes both per user.
+  dashboard: null,
   cases: 'case.view',
   hearings: 'hearing.view',
   // Clients are case-local records; the page is derived from the cases list
   // and the backend only joins clients for accounts holding client.view.
   clients: 'client.view',
   tasks: 'task.view',
-  calendar: 'calendar.read',
+  calendar: null,
   invoices: 'finance.firm.view',
   'reports/finance': 'finance.firm.view',
   employees: 'employee.view',
   // Roles.jsx is the per-employee permission editor.
   roles: 'employee.manage',
-  settings: 'firm.profile.read',
+  settings: FIRM_ADMIN_ONLY,
   'audit-log': FIRM_ADMIN_ONLY,
   subscription: FIRM_ADMIN_ONLY,
 }

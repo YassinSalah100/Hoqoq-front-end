@@ -238,7 +238,8 @@ export default function Tasks() {
   const [showCreate, setShowCreate] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const { data, loading, error, reload } = useFetch(() => tasksApi.list(), [])
-  const { data: casesAll } = useFetch(() => casesApi.list(), [])
+  const canViewCases = hasPermission(currentUser, 'case.view')
+  const { data: casesAll } = useFetch(() => (canViewCases ? casesApi.list() : Promise.resolve([])), [canViewCases])
   const { data: employeesAll } = useFetch(() => employeesApi.directory(), [])
   const rows = useMemo(() => (Array.isArray(data) ? data : data?.items ?? []), [data])
   // Real backend permission code is 'task.create' (singular, dotted — see

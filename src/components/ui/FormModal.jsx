@@ -164,7 +164,7 @@ export default function FormModal({ open, onClose, title, fields, initialValues,
           {visibleFields.map((field) => (
             <div key={field.name} className={`flex flex-col gap-1.5 ${useGrid && isFullWidth(field) ? 'sm:col-span-2' : ''}`}>
               <label className="text-sm font-medium text-ink-700">{field.label}</label>
-              <Field field={field} value={values[field.name]} onChange={(v) => update(field.name, v)} />
+              <Field field={typeof field.groups === 'function' ? { ...field, groups: field.groups(values) } : field} value={values[field.name]} onChange={(v) => update(field.name, v)} />
             </div>
           ))}
         </div>

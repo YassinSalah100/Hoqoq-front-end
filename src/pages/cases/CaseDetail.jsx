@@ -10,7 +10,7 @@ import Avatar from '../../components/ui/Avatar'
 import FormModal from '../../components/ui/FormModal'
 import Modal from '../../components/ui/Modal'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
-import { CASE_STATUS, HEARING_STATUS, TASK_STATUS, TASK_PRIORITY, PARTY_TYPE, groupCaseCapabilities, summarizeGrantedCapabilities, PAYMENT_METHOD } from '../../data/enums'
+import { CASE_STATUS, HEARING_STATUS, TASK_STATUS, TASK_PRIORITY, PARTY_TYPE, groupCaseCapabilities, basePermissionForCapability, summarizeGrantedCapabilities, PAYMENT_METHOD } from '../../data/enums'
 import { casesApi, hearingsApi, documentsApi, tasksApi, financeApi, referenceApi, employeesApi, lookupsApi, downloadAuthedFile } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
@@ -72,13 +72,24 @@ function TeamTab({ caseId, team, employees, reload }) {
       label: 'الموظف',
       type: 'select',
       required: true,
-      options: (employees ?? []).map((e) => ({ value: e.user?.id, label: e.user?.fullName ?? e.user?.email })),
+      // The Firm Admin already has full access (BR-001) and can't be given
+      // case grants — only employees can be added to a case team.
+      options: (employees ?? [])
+        .filter((e) => e.user && e.user.accountType !== 'FIRM_ADMIN')
+        .map((e) => ({ value: e.user.id, label: e.user.fullName ?? e.user.email })),
     },
     {
       name: 'capabilities',
-      label: 'الصلاحيات الممنوحة على هذه القضية',
+      label: 'الصلاحيات الممنوحة على هذه القضية (من صلاحيات حسابه فقط)',
       type: 'grouped-checkboxes',
-      groups: groupCaseCapabilities(),
+      // Only what the chosen employee holds on his account — anything else
+      // would have no effect (PRD BR-002). Add account permissions from the
+      // employees page first.
+      groups: (values) => {
+        const member = (employees ?? []).find((e) => e.user?.id === values.userId)
+        if (!values.userId) return []
+        return groupCaseCapabilities(member?.permissions)
+      },
     },
   ]
 
@@ -120,7 +131,10 @@ function TeamTab({ caseId, team, employees, reload }) {
           submitLabel="حفظ"
           onSubmit={async (values) => {
             if (!values.userId) throw new Error('اختر موظفاً')
-            await casesApi.setAccess(caseId, values.userId, values.capabilities ?? [])
+            const member = (employees ?? []).find((e) => e.user?.id === values.userId)
+            const held = member?.permissions ? new Set(member.permissions) : null
+            const capabilities = (values.capabilities ?? []).filter((c) => !held || held.has(basePermissionForCapability(c)))
+            await casesApi.setAccess(caseId, values.userId, capabilities)
             setEditingUserId(null)
             reload()
           }}

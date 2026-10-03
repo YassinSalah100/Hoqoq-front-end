@@ -255,7 +255,8 @@ export default function Hearings() {
   const [completeTarget, setCompleteTarget] = useState(null)
 
   const { data, loading, error, reload } = useFetch(() => hearingsApi.list(), [])
-  const { data: casesAll } = useFetch(() => casesApi.list(), [])
+  const canViewCases = hasPermission(currentUser, 'case.view')
+  const { data: casesAll } = useFetch(() => (canViewCases ? casesApi.list() : Promise.resolve([])), [canViewCases])
   const { data: hearingTypes, error: hearingTypesError, reload: reloadHearingTypes } = useFetch(() => lookupsApi.list('HEARING_TYPE'), [])
   const { data: employeesAll } = useFetch(() => employeesApi.directory(), [])
 

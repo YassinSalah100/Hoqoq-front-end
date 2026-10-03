@@ -1,54 +1,30 @@
 import { useMemo, useState } from 'react'
-import { Plus, UserX, ShieldCheck, KeyRound } from 'lucide-react'
+import { Plus, UserX, KeyRound } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import DataTable from '../../components/ui/DataTable'
 import Avatar from '../../components/ui/Avatar'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
-import Modal from '../../components/ui/Modal'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
 import FormModal from '../../components/ui/FormModal'
-import PermissionsEditor from '../../components/hr/PermissionsEditor'
 import { EMPLOYEE_POSITION, EMPLOYEE_DEPARTMENT, JOB_CLASSIFICATION } from '../../data/enums'
-import { groupPermissionCodes } from '../../data/permissionCatalog'
-import { employeesApi, permissionsApi, referenceApi } from '../../lib/api'
+import { employeesApi, referenceApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
 import { isFirmAdmin, hasPermission } from '../../data/auth'
 import { isStrongPassword, PASSWORD_RULE_HINT, WEAK_PASSWORD_MESSAGE } from '../../lib/passwordPolicy'
 
-// Wraps the shared permission editor (also used as the dedicated page at
-// /roles) in a modal for the quick per-row "edit permissions" action here —
-// keeps the catalog-fetch-and-render logic in one place instead of
-// duplicating it between the two entry points.
-function PermissionsModal({ employee, onClose }) {
-  if (!employee) return null
-  const name = employee.user?.fullName || employee.user?.email
-  return (
-    <Modal open={Boolean(employee)} onClose={onClose} title={`صلاحيات ${name}`} size="lg">
-      <PermissionsEditor employee={employee} onSaved={onClose} onCancel={onClose} />
-    </Modal>
-  )
-}
-
 export default function Employees() {
   const { currentUser } = useAuth()
   const [showCreate, setShowCreate] = useState(false)
-  const [permissionsFor, setPermissionsFor] = useState(null)
   const [credentialsFor, setCredentialsFor] = useState(null)
   const canCreate = hasPermission(currentUser, 'employee.create')
-  const canManagePermissions = hasPermission(currentUser, 'employee.manage')
   // BR-011 / BR-033: deactivation and credential resets are Firm-Admin-only.
   const firmAdmin = isFirmAdmin(currentUser)
   const { data, loading, error, reload } = useFetch(() => employeesApi.list(), [])
-  const { data: catalog } = useFetch(() => permissionsApi.catalog(), [])
   const { data: caseTypes } = useFetch(() => referenceApi.caseTypes(), [])
   const rows = useMemo(() => (Array.isArray(data) ? data : data?.items ?? []), [data])
   const caseTypeLabel = useMemo(() => Object.fromEntries((caseTypes ?? []).map((t) => [t.id, t.labelAr])), [caseTypes])
-  const permissionGroups = useMemo(
-    () => groupPermissionCodes(catalog?.codes ?? []).map((g) => ({ label: g.groupLabel, options: g.items.map((i) => ({ value: i.code, label: i.label })) })),
-    [catalog],
-  )
 
   // Employees are never deleted (BR-012) — DELETE /employees/:id deactivates
   // the account and revokes its sessions, and is blocked while the employee
@@ -101,12 +77,6 @@ export default function Employees() {
       options: [{ value: GENERAL_SPECIALIZATION, label: 'عام (جميع أنواع القضايا)' }, ...(caseTypes ?? []).map((t) => ({ value: t.id, label: t.labelAr }))],
       visibleWhen: requiresSpecialization,
     },
-    {
-      name: 'permissionKeys',
-      label: 'الصلاحيات الممنوحة لهذا الحساب',
-      type: 'grouped-checkboxes',
-      groups: permissionGroups,
-    },
   ]
 
   const columns = [
@@ -158,15 +128,6 @@ export default function Employees() {
           <span className="text-[10px] text-ink-300">حسابك</span>
         ) : (
           <span className="flex items-center gap-1">
-            {canManagePermissions && (
-              <button
-                onClick={() => setPermissionsFor(r)}
-                title="الصلاحيات"
-                className="text-ink-300 hover:text-brass-600 p-1 rounded-lg hover:bg-brass-100"
-              >
-                <ShieldCheck size={14} />
-              </button>
-            )}
             {firmAdmin && (
               <button
                 onClick={() => setCredentialsFor(r)}
@@ -233,7 +194,8 @@ export default function Employees() {
             fullName: values.fullName,
             jobClassification: values.jobClassification,
             hireDate: values.hireDate,
-            permissionKeys: values.permissionKeys ?? [],
+            // Account permissions are managed only on the الأدوار page.
+            permissionKeys: [],
           }
           if (values.phone) payload.phone = values.phone
           if (values.department) payload.department = values.department
@@ -246,7 +208,6 @@ export default function Employees() {
         }}
       />
 
-      {permissionsFor && <PermissionsModal employee={permissionsFor} onClose={() => setPermissionsFor(null)} />}
 
       {loading && <LoadingBlock label="جاري تحميل الموظفين..." />}
       {error && <ErrorBlock error={error} onRetry={reload} />}

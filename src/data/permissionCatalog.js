@@ -93,12 +93,19 @@ export function permissionGroupLabel(code) {
   return GROUP_LABELS[code.split('.')[0]] ?? code.split('.')[0]
 }
 
-// Codes the backend still defines but that aren't offered in the permission
-// pickers: the meetings feature isn't part of the product's UI, and
-// reference.read no longer gates anything (reference/lookup lists are
-// readable by every signed-in account).
-function isHiddenCode(code) {
-  return code.startsWith('meeting.') || code === 'reference.read'
+// Codes the backend defines but that must not appear in the permission
+// pickers:
+//  - never enforced anywhere (or no longer needed): every employee gets
+//    their own dashboard, calendar and notifications (PRD §7.3, §7.8), and
+//    reference/lookup lists are open to every signed-in account;
+//  - reserved to the Firm Admin in v1 (who needs no codes at all, BR-001):
+//    reports (BR-039), audit, employee deactivation (BR-011), firm profile;
+//  - meetings, which have no screen in the product yet.
+const HIDDEN_PREFIXES = ['meeting.', 'calendar.', 'notification.', 'reference.', 'firm.profile.', 'platform.', 'system.']
+const HIDDEN_CODES = new Set(['dashboard.read', 'report.view', 'audit.view', 'employee.status.manage'])
+
+export function isHiddenCode(code) {
+  return HIDDEN_CODES.has(code) || HIDDEN_PREFIXES.some((prefix) => code.startsWith(prefix))
 }
 
 // Groups + sorts a flat code list for a two-column checkbox layout, e.g.

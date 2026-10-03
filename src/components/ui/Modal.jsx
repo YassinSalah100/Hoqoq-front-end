@@ -9,7 +9,11 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" onClick={onClose} />
+      {/* No onClick here on purpose — closing on an accidental backdrop
+          click was silently wiping out whatever the user had typed into
+          the form, with no confirmation and no way to recover it. Closing
+          is now only ever explicit: the X button or a Cancel button. */}
+      <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" />
       <div
         className={`relative bg-white rounded-xl shadow-pop w-full ${SIZES[size] ?? SIZES.md} max-h-[90vh] sm:max-h-[85vh] overflow-y-auto`}
       >
