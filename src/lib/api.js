@@ -240,12 +240,19 @@ export const referenceApi = {
   // Global, platform-wide case types — used both to pick a case's type and a
   // lawyer's specializations.
   caseTypes: (language) => get(`/reference/case-types${language ? `?language=${language}` : ''}`),
+  // Firm-owned additions (Firm Admin). Archive keeps history (PRD BR-012).
+  createCaseType: (data) => post('/reference/case-types', data),
+  archiveCaseType: (id) => del(`/reference/case-types/${id}`),
+  createCourt: (data) => post('/reference/courts', data),
+  createCircuit: (courtId, data) => post(`/reference/courts/${courtId}/circuits`, data),
 }
 
 // ---- Lookups (tenant-scoped reference data: hearing types, document categories, service methods) ----
 export const lookupsApi = {
   list: (kind) => get(`/lookups${kind ? `?kind=${kind}` : ''}`),
   enums: () => get('/lookups/enums'),
+  create: (data) => post('/lookups', data),
+  archive: (id) => del(`/lookups/${id}`),
 }
 
 // ---- Notifications ----
@@ -335,6 +342,7 @@ export const hearingsApi = {
 // the Case's agreed fee plus a payment ledger against that one case.
 export const financeApi = {
   summary: () => get('/finance/summary'), // firm-wide totals + per-case rows
+  clients: () => get('/finance/clients'), // every client across cases, with each case's fee/paid/remaining
   getCaseFinance: (caseId) => get(`/finance/cases/${caseId}`), // { caseId, agreedFee, paid, remaining, payments }
   recordPayment: (caseId, data) => post(`/finance/cases/${caseId}/payments`, data), // { amount, paidAt, method, reference?, note? }
   reversePayment: (paymentId, reason) => patch(`/finance/payments/${paymentId}/reverse`, { reason }),

@@ -106,3 +106,13 @@ export function getDefaultRoute(user) {
   const accessible = SIDEBAR_ORDER.find((path) => canSeeSidebarItem(user, path))
   return accessible ? `/${accessible}` : '/dashboard'
 }
+
+// Effective case capability for the signed-in user (PRD BR-002): the Firm
+// Admin has all of them; anyone else needs the capability on this Case's
+// team (caseItem.team, from GET /cases/:id). An account permission alone
+// does not open a case's finance.
+export function hasCaseCapability(user, caseItem, capability) {
+  if (isFirmAdmin(user)) return true
+  const mine = (caseItem?.team ?? []).find((t) => t.id === user?.id)
+  return (mine?.roleOnCase ?? '').split(',').includes(capability)
+}

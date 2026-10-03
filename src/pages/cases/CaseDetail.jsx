@@ -24,7 +24,6 @@ const TABS = [
   { value: 'opponents', label: 'الخصوم' },
   { value: 'notes', label: 'الملاحظات' },
   { value: 'tasks', label: 'المهام' },
-  { value: 'finance', label: 'المالية' },
 ]
 
 const inputClass =
@@ -1024,10 +1023,9 @@ export default function CaseDetail() {
   const { data: caseItem, loading, error, reload } = useFetch(() => casesApi.get(id), [id])
   const { data: employees } = useFetch(() => employeesApi.directory(), [])
 
-  const visibleTabs = useMemo(
-    () => TABS.filter((t) => t.value !== 'finance' || hasPermission(currentUser, 'finance.view')),
-    [currentUser]
-  )
+  // Finance is managed from the المالية module (account permissions), not
+  // per Case — so the case has no finance tab.
+  const visibleTabs = useMemo(() => TABS, [])
   const canEdit = hasPermission(currentUser, 'case.edit')
 
   if (loading) return <LoadingBlock label="جاري تحميل بيانات القضية..." />
@@ -1097,7 +1095,6 @@ export default function CaseDetail() {
       {tab === 'opponents' && <OpponentsTab opponents={caseItem.opponentSnapshots ?? []} />}
       {tab === 'notes' && <NotesTab caseItem={caseItem} reload={reload} canEdit={canEdit} />}
       {tab === 'tasks' && <TasksTab caseId={id} employees={employees} />}
-      {tab === 'finance' && <FinanceTab caseId={id} />}
     </div>
   )
 }

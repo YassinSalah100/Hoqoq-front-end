@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie } from 'recharts'
+import { ChevronLeft } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import Tabs from '../../components/ui/Tabs'
 import DataTable from '../../components/ui/DataTable'
@@ -16,6 +17,7 @@ import { hasPermission, isFirmAdmin } from '../../data/auth'
 // reports are Firm-Admin-only in v1 (PRD BR-039).
 const TABS = [
   { value: 'finance', label: 'المالية' },
+  { value: 'clients', label: 'حسب الموكل' },
   { value: 'cases', label: 'القضايا', firmAdminOnly: true },
   { value: 'employees', label: 'الموظفين', firmAdminOnly: true },
 ]
@@ -147,6 +149,79 @@ function FinanceTab() {
   )
 }
 
+// Everything about each client in one place: every case he's on, what each
+// case costs, what's been paid and what's still owed. Rows are grouped by
+// identity (national ID / passport / name + phone) and sorted by balance due.
+function ClientsFinanceTab() {
+  const { data, loading, error, reload } = useFetch(() => financeApi.clients(), [])
+  const [open, setOpen] = useState(null)
+  const rows = data ?? []
+  if (loading) return <LoadingBlock label="جاري تحميل بيانات الموكلين..." />
+  if (error) return <ErrorBlock error={error} onRetry={reload} />
+  if (!rows.length) return <EmptyState message="لا يوجد موكلون في القضايا بعد" />
+  const totals = rows.reduce((t, r) => ({ fee: t.fee + r.totalAgreedFee, paid: t.paid + r.totalPaid, due: t.due + r.totalRemaining }), { fee: 0, paid: 0, due: 0 })
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl border border-paper-line p-4"><p className="text-xs text-ink-400">إجمالي الأتعاب</p><p className="text-lg font-semibold text-ink-800">{sar(totals.fee)}</p></div>
+        <div className="bg-white rounded-xl border border-paper-line p-4"><p className="text-xs text-ink-400">إجمالي المحصّل</p><p className="text-lg font-semibold text-emerald-700">{sar(totals.paid)}</p></div>
+        <div className="bg-white rounded-xl border border-paper-line p-4"><p className="text-xs text-ink-400">المستحق</p><p className="text-lg font-semibold text-rust-600">{sar(totals.due)}</p></div>
+      </div>
+      <div className="bg-white rounded-xl border border-paper-line shadow-card overflow-hidden divide-y divide-paper-line">
+        {rows.map((r) => {
+          const isOpen = open === r.key
+          return (
+            <div key={r.key}>
+              <button type="button" onClick={() => setOpen(isOpen ? null : r.key)} className="w-full text-right grid grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_28px] items-center gap-3 px-5 py-3.5 hover:bg-paper-soft">
+                <span className="min-w-0">
+                  <span className="block font-semibold text-ink-800 truncate">{r.name}</span>
+                  <span className="block text-[11px] text-ink-400 font-mono truncate" dir="ltr" style={{ textAlign: "right" }}>
+                    {r.nationalId || r.passportNumber || r.phone || "—"} · {r.cases.length} قضية
+                  </span>
+                </span>
+                <span className="text-sm text-ink-700">{sar(r.totalAgreedFee)}</span>
+                <span className="text-sm text-emerald-700">{sar(r.totalPaid)}</span>
+                <span className="text-sm font-semibold text-rust-600">{sar(r.totalRemaining)}</span>
+                <ChevronLeft size={16} className={"text-ink-300 transition-transform " + (isOpen ? "-rotate-90" : "")} />
+              </button>
+              {isOpen && (
+                <div className="bg-paper-soft/50 px-5 py-4 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-ink-500">
+                    <span>الهاتف: <span dir="ltr">{r.phone || "—"}</span></span>
+                    <span>البريد: <span dir="ltr">{r.email || "—"}</span></span>
+                  </div>
+                  <table className="w-full text-sm bg-white rounded-lg border border-paper-line overflow-hidden">
+                    <thead>
+                      <tr className="bg-paper text-[12px] text-ink-400 text-right">
+                        <th className="font-medium px-3 py-2">القضية</th>
+                        <th className="font-medium px-3 py-2">الحالة</th>
+                        <th className="font-medium px-3 py-2">الأتعاب</th>
+                        <th className="font-medium px-3 py-2">المدفوع</th>
+                        <th className="font-medium px-3 py-2">المتبقي</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {r.cases.map((c) => (
+                        <tr key={c.caseId} className="border-t border-paper-line">
+                          <td className="px-3 py-2"><span className="font-mono text-xs text-ink-500">{c.caseNumber}</span> <span className="text-ink-700">{c.title}</span>{c.isPrimary && <span className="text-[10px] text-brass-700 mr-1">(رئيسي)</span>}</td>
+                          <td className="px-3 py-2"><EnumBadge code={c.status} map={CASE_STATUS} /></td>
+                          <td className="px-3 py-2">{sar(c.agreedFee)}</td>
+                          <td className="px-3 py-2 text-emerald-700">{sar(c.paid)}</td>
+                          <td className="px-3 py-2 text-rust-600">{sar(c.remaining)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function EmployeesTab() {
   const { data, loading, error, reload } = useFetch(() => employeesApi.list(), [])
   const rows = data ?? []
@@ -178,6 +253,7 @@ export default function FinanceReports() {
 
       {tab === 'cases' && <CasesTab />}
       {tab === 'finance' && <FinanceTab />}
+      {tab === 'clients' && <ClientsFinanceTab />}
       {tab === 'employees' && <EmployeesTab />}
     </div>
   )

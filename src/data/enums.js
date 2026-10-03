@@ -149,6 +149,7 @@ export function groupCaseCapabilities(accountPermissions) {
   const allowed = accountPermissions ? new Set(accountPermissions) : null
   const map = {}
   Object.entries(CASE_CAPABILITIES).forEach(([code, label]) => {
+    if (code.startsWith('finance.')) return // managed from the Finance module
     if (allowed && !allowed.has(basePermissionForCapability(code))) return
     const group = code.split('.')[0]
     map[group] = map[group] ?? []

@@ -161,7 +161,11 @@ function ReversePaymentForm({ paymentId, onDone, onCancel }) {
 }
 
 // ---- Per-case finance drill-down (GET /finance/cases/:caseId) ----
-function CaseFinanceModal({ caseId, caseNumber, canRecord, canManage, onClose, onChanged }) {
+function CaseFinanceModal({ caseId, caseNumber, onClose, onChanged }) {
+  const { currentUser } = useAuth()
+  // Finance permissions come from the account (the firm-wide Finance module).
+  const canRecord = hasPermission(currentUser, 'finance.payment.record')
+  const canManage = hasPermission(currentUser, 'finance.manage')
   const { data, loading, error, reload } = useFetch(() => financeApi.getCaseFinance(caseId), [caseId])
   const [showRecordForm, setShowRecordForm] = useState(false)
   const [reversingId, setReversingId] = useState(null)
@@ -269,8 +273,6 @@ function CaseFinanceModal({ caseId, caseNumber, canRecord, canManage, onClose, o
 export default function Invoices() {
   const { currentUser } = useAuth()
   const canView = hasPermission(currentUser, 'finance.firm.view')
-  const canRecord = hasPermission(currentUser, 'finance.payment.record')
-  const canManage = hasPermission(currentUser, 'finance.manage')
 
   const [status, setStatus] = useState('ALL')
   const [selectedCase, setSelectedCase] = useState(null)
@@ -337,8 +339,6 @@ export default function Invoices() {
             <CaseFinanceModal
               caseId={selectedCase.caseId}
               caseNumber={selectedCase.caseNumber}
-              canRecord={canRecord}
-              canManage={canManage}
               onClose={() => setSelectedCase(null)}
               onChanged={reload}
             />
