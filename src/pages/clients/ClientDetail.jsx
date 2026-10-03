@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Phone, Mail, Building2, User, Landmark, Star } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
@@ -95,8 +96,8 @@ export default function ClientDetail() {
             className="px-6 py-3 flex items-center justify-between cursor-pointer hover:bg-paper-soft transition-colors"
           >
             <div className="min-w-0">
-              <p className="text-sm text-ink-800 truncate">{caseItem.title ?? caseItem.caseType?.nameAr ?? caseItem.caseNumber}</p>
-              <p className="font-mono text-xs text-ink-400">{caseItem.caseNumber}</p>
+              <p className="text-sm text-ink-800 truncate">{caseItem.title ?? caseItem.caseType?.nameAr}</p>
+              <p className="font-mono text-xs text-ink-400">{caseLabel(caseItem)}</p>
             </div>
             <EnumBadge code={caseItem.status} map={CASE_STATUS} />
           </div>

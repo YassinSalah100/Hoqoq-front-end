@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { Link } from 'react-router-dom'
 import { FileText, Receipt } from 'lucide-react'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
@@ -117,7 +118,7 @@ export default function Dashboard() {
                 {upcomingHearings.map((h) => (
                   <tr key={h.id} className="border-t border-paper-line">
                     <td className="px-6 py-2.5 font-mono text-ink-700 text-xs">{new Date(h.scheduledAt).toLocaleString('ar')}</td>
-                    <td className="px-2 py-2.5 text-ink-700 font-mono text-xs">{h.case?.caseNumber ?? h.caseId}</td>
+                    <td className="px-2 py-2.5 text-ink-700 font-mono text-xs">{h.case?.title ?? ''}</td>
                     <td className="px-2 py-2.5">
                       <EnumBadge code={h.status} map={HEARING_STATUS} />
                     </td>

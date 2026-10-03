@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useMemo, useState } from 'react'
 import { Plus, Calendar, FolderKanban, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
@@ -58,10 +59,10 @@ function TaskCard({ task, onClick }) {
     >
       <p className="text-sm text-ink-800 font-medium mb-2 leading-snug">{task.title}</p>
 
-      {task.case?.caseNumber && (
+      {task.case?.title && (
         <div className="flex items-center gap-1 text-xs text-ink-400 mb-2 font-mono">
           <FolderKanban size={11} className="shrink-0" />
-          <span className="truncate">{task.case.caseNumber}</span>
+          <span className="truncate">{task.case.title}</span>
         </div>
       )}
 
@@ -147,10 +148,10 @@ function TaskDetailModal({ task, onClose, canUpdate, canComplete, onChanged }) {
         {task.description && <p className="text-sm text-ink-600 whitespace-pre-wrap">{task.description}</p>}
 
         <div className="grid grid-cols-2 gap-3 text-sm">
-          {task.case?.caseNumber && (
+          {task.case?.title && (
             <div>
               <p className="text-xs text-ink-400 mb-0.5">القضية</p>
-              <p className="font-mono text-ink-700">{task.case.caseNumber}</p>
+              <p className="font-mono text-ink-700">{task.case.title}</p>
             </div>
           )}
           <div>
@@ -263,7 +264,7 @@ export default function Tasks() {
       label: 'القضية',
       type: 'select',
       required: true,
-      options: (casesAll ?? []).map((c) => ({ value: c.id, label: c.title ? `${c.caseNumber} — ${c.title}` : c.caseNumber })),
+      options: (casesAll ?? []).map((c) => ({ value: c.id, label: caseLabel(c) })),
     },
     {
       name: 'assignedToId',

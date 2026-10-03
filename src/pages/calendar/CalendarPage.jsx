@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useMemo, useState } from 'react'
 import { ChevronRight, ChevronLeft, Plus, Clock, Briefcase } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
@@ -67,7 +68,7 @@ function formatFullDate(year, month, day) {
 // back to the item-type label plus the case number when there's no title.
 function itemDisplayTitle(item, casesById) {
   if (item.title) return item.title
-  const caseNumber = item.caseId ? casesById[item.caseId]?.caseNumber : null
+  const caseNumber = item.caseId ? caseLabel(casesById[item.caseId]) : null
   const base = ITEM_TYPE_LABEL[item.type] ?? item.type
   return caseNumber ? `${base} — ${caseNumber}` : base
 }
@@ -243,7 +244,7 @@ export default function CalendarPage() {
                 {selectedItems.map((item, idx) => {
                   const statusMap = STATUS_MAP[item.type]
                   const statusInfo = statusMap?.[item.status]
-                  const caseNumber = item.caseId ? casesById[item.caseId]?.caseNumber : null
+                  const caseNumber = item.caseId ? caseLabel(casesById[item.caseId]) : null
                   const priorityInfo = item.type === 'TASK' ? TASK_PRIORITY[item.priority] : null
                   return (
                     <div key={item.id ?? idx} className="flex items-start gap-3 rounded-lg border border-paper-line p-3">

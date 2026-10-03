@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Send, Plus, FileText, Download, Trash2, Upload, UserX, UserCog, ShieldCheck, Pencil, Building2, Phone, Info } from 'lucide-react'
@@ -1035,8 +1036,8 @@ export default function CaseDetail() {
   return (
     <div>
       <PageHeader
-        title={caseItem.caseNumber}
-        breadcrumb={[{ label: 'القضايا', to: '/cases' }, { label: caseItem.caseNumber ?? caseItem.id }]}
+        title={caseItem.title}
+        breadcrumb={[{ label: 'القضايا', to: '/cases' }, { label: caseItem.title ?? '' }]}
         actions={
           <div className="flex items-center gap-2">
             <StatusChanger caseItem={caseItem} reload={reload} />
@@ -1059,7 +1060,7 @@ export default function CaseDetail() {
       )}
 
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        <span className="font-mono text-sm text-ink-500">{caseItem.caseNumber}</span>
+        <span className="font-mono text-sm text-ink-500">{caseLabel(caseItem)}</span>
         <EnumBadge code={caseItem.status} map={CASE_STATUS} />
       </div>
 

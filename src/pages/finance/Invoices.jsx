@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useMemo, useState } from 'react'
 import { Plus, RotateCcw } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
@@ -290,7 +291,7 @@ export default function Invoices() {
   const filtered = cases.filter((c) => status === 'ALL' || c.status === status)
 
   const columns = [
-    { key: 'caseNumber', header: 'رقم القضية', render: (r) => <span className="font-mono text-xs">{r.caseNumber}</span> },
+    { key: 'caseNumber', header: 'رقم القضية', render: (r) => <span className="font-mono text-xs">{caseLabel(r)}</span> },
     { key: 'agreedFee', header: 'الأتعاب المتفق عليها', render: (r) => <span className="font-mono">{sar(r.agreedFee)}</span> },
     { key: 'paid', header: 'المدفوع', render: (r) => <span className="font-mono">{sar(r.paid)}</span> },
     { key: 'remaining', header: 'المتبقي', render: (r) => <span className="font-mono">{sar(r.remaining)}</span> },
@@ -338,7 +339,7 @@ export default function Invoices() {
           {selectedCase && (
             <CaseFinanceModal
               caseId={selectedCase.caseId}
-              caseNumber={selectedCase.caseNumber}
+              caseNumber={caseLabel(selectedCase)}
               onClose={() => setSelectedCase(null)}
               onChanged={reload}
             />

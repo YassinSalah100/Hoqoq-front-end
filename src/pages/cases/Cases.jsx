@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Download, Briefcase, Landmark, User, X, UserPlus, FileText, UserX as UserXIcon, UserCog, List, LayoutGrid, CalendarDays, ChevronLeft } from 'lucide-react'
@@ -599,7 +600,7 @@ function CasesTable({ rows, lawyerName, onOpen }) {
                 >
                   <td className="px-5 py-3.5 max-w-[260px]">
                     <p className="font-semibold text-ink-800 truncate">{c.title || '—'}</p>
-                    <p className="font-mono text-[11px] text-ink-400 truncate" dir="ltr" style={{ textAlign: 'right' }}>{c.caseNumber}</p>
+                    <p className="font-mono text-[11px] text-ink-400 truncate" dir="ltr" style={{ textAlign: 'right' }}>{caseLabel(c)}</p>
                   </td>
                   <td className="px-4 py-3.5 text-ink-700 max-w-[180px]">
                     {client ? (
@@ -646,7 +647,7 @@ function CaseCard({ c, lawyerName, onOpen }) {
       <div className="p-5 pr-6 flex flex-col flex-1">
         <div className="flex items-center justify-between gap-2 mb-3">
           <StatusPill status={c.status} />
-          <span className="font-mono text-[11px] text-ink-400 truncate" dir="ltr">{c.caseNumber}</span>
+          <span className="font-mono text-[11px] text-ink-400 truncate" dir="ltr">{caseLabel(c)}</span>
         </div>
 
         <p className="font-semibold text-ink-800 text-[15px] leading-snug mb-3 line-clamp-2">{c.title || '—'}</p>

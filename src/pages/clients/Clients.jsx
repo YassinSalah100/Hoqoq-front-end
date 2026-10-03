@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Phone, Mail, Building2, User, Landmark, Star } from 'lucide-react'
@@ -27,7 +28,7 @@ export default function Clients() {
   const rows = useMemo(() => {
     const list = Array.isArray(cases) ? cases : cases?.items ?? []
     return list.flatMap((c) =>
-      (c.clients ?? []).map((client) => ({ caseId: c.id, caseNumber: c.caseNumber, caseTitle: c.title, status: c.status, client }))
+      (c.clients ?? []).map((client) => ({ caseId: c.id, caseNumber: c.caseNumber, courtCaseNumber: c.courtCaseNumber, courtCaseYear: c.courtCaseYear, caseTitle: c.title, status: c.status, client }))
     )
   }, [cases])
 
@@ -89,7 +90,7 @@ export default function Clients() {
 
                 <div className="flex items-center justify-between border-t border-paper-line pt-3 mt-auto text-sm gap-2">
                   <span className="min-w-0">
-                    <span className="block font-mono text-xs text-ink-400">{row.caseNumber}</span>
+                    <span className="block font-mono text-xs text-ink-400">{caseLabel(row)}</span>
                     {row.caseTitle && <span className="block text-xs text-ink-500 truncate">{row.caseTitle}</span>}
                   </span>
                   <EnumBadge code={row.status} map={CASE_STATUS} />

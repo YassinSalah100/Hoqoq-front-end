@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useMemo, useState } from 'react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie } from 'recharts'
 import { ChevronLeft } from 'lucide-react'
@@ -37,7 +38,7 @@ function CasesTab() {
   return (
     <DataTable
       columns={[
-        { key: 'caseNumber', header: 'رقم القضية', render: (r) => <span className="font-mono text-xs">{r.caseNumber}</span> },
+        { key: 'caseNumber', header: 'رقم القضية', render: (r) => <span className="font-mono text-xs">{caseLabel(r)}</span> },
         { key: 'client', header: 'الموكل', sortable: false, render: (r) => primaryClientOf(r)?.name ?? '—' },
         { key: 'type', header: 'النوع', sortable: false, render: (r) => r.caseType?.nameAr ?? '—' },
         { key: 'status', header: 'الحالة', sortable: false, render: (r) => <EnumBadge code={r.status} map={CASE_STATUS} /> },
@@ -131,7 +132,7 @@ function FinanceTab() {
               <BarChart data={topOutstanding} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E3DDCC" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: '#A3947C' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="caseNumber" width={100} tick={{ fontSize: 11, fill: '#5E4D34' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="title" width={100} tick={{ fontSize: 11, fill: '#5E4D34' }} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(v) => sar(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E3DDCC', fontSize: 11 }} />
                 <Bar dataKey="remaining" radius={[0, 4, 4, 0]} maxBarSize={18}>
                   {topOutstanding.map((_, i) => (
@@ -203,7 +204,7 @@ function ClientsFinanceTab() {
                     <tbody>
                       {r.cases.map((c) => (
                         <tr key={c.caseId} className="border-t border-paper-line">
-                          <td className="px-3 py-2"><span className="font-mono text-xs text-ink-500">{c.caseNumber}</span> <span className="text-ink-700">{c.title}</span>{c.isPrimary && <span className="text-[10px] text-brass-700 mr-1">(رئيسي)</span>}</td>
+                          <td className="px-3 py-2"><span className="text-ink-700">{c.title}</span>{c.isPrimary && <span className="text-[10px] text-brass-700 mr-1">(رئيسي)</span>}</td>
                           <td className="px-3 py-2"><EnumBadge code={c.status} map={CASE_STATUS} /></td>
                           <td className="px-3 py-2">{sar(c.agreedFee)}</td>
                           <td className="px-3 py-2 text-emerald-700">{sar(c.paid)}</td>

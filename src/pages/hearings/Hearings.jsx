@@ -1,3 +1,4 @@
+import { caseLabel } from '../../lib/caseLabels'
 import { useMemo, useState } from 'react'
 import { Calendar as CalendarIcon, Plus, Pencil, UserPlus, CheckCircle2, XCircle } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
@@ -136,7 +137,7 @@ function CreateHearingModal({ open, onClose, cases, hearingTypes, hearingTypesEr
             <select required value={caseId} onChange={(e) => handleCaseChange(e.target.value)} className={inputClass}>
               <option value="" disabled>اختر القضية...</option>
               {casesList.map((c) => (
-                <option key={c.id} value={c.id}>{c.caseNumber}</option>
+                <option key={c.id} value={c.id}>{caseLabel(c)}</option>
               ))}
             </select>
           </div>
@@ -296,7 +297,7 @@ export default function Hearings() {
 
   const columns = [
     { key: 'scheduledAt', header: 'التاريخ والوقت', render: (r) => <span className="font-mono text-xs">{new Date(r.scheduledAt).toLocaleString('ar')}</span> },
-    { key: 'caseId', header: 'رقم القضية', sortable: false, render: (r) => <span className="font-mono text-xs">{casesById[r.caseId]?.caseNumber ?? r.caseId}</span> },
+    { key: 'caseId', header: 'رقم القضية', sortable: false, render: (r) => <span className="font-mono text-xs">{caseLabel(casesById[r.caseId]) || '—'}</span> },
     { key: 'court', header: 'المحكمة', sortable: false, render: (r) => courtLabel(r) ?? '—' },
     { key: 'hearingTypeId', header: 'نوع الجلسة', sortable: false, render: (r) => hearingTypesById[r.hearingTypeId] ?? '—' },
     { key: 'judgeName', header: 'القاضي', sortable: false, render: (r) => r.judgeName ?? '—' },
