@@ -22,6 +22,7 @@ import StatCard from '../../components/ui/StatCard'
 import AuthedImage from '../../components/ui/AuthedImage'
 import { LoadingBlock, ErrorBlock } from '../../components/ui/AsyncState'
 import FormModal from '../../components/ui/FormModal'
+import Modal from '../../components/ui/Modal'
 import { tenantsApi, subscriptionsApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
 
@@ -272,6 +273,9 @@ export default function Firms() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [showNewFirm, setShowNewFirm] = useState(false)
+  // Set after a firm is provisioned so we can tell the operator an activation
+  // email went out (the Firm Admin sets their own password from it).
+  const [createdFirm, setCreatedFirm] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
   const [busy, setBusy] = useState(false)
   const [changingPlanForId, setChangingPlanForId] = useState(null)
@@ -496,9 +500,29 @@ export default function Firms() {
             }
             throw err
           }
+          setCreatedFirm({ name: values.firmName, email: values.adminEmail })
           reload()
         }}
       />
+
+      <Modal open={Boolean(createdFirm)} onClose={() => setCreatedFirm(null)} title="تم إنشاء المكتب بنجاح">
+        <div className="flex flex-col items-center text-center gap-4 py-2">
+          <div className="w-14 h-14 rounded-full bg-brass-100 flex items-center justify-center">
+            <Mail size={26} className="text-brass-600" />
+          </div>
+          <p className="text-sm text-ink-700 leading-relaxed">
+            تم إرسال رسالة تفعيل إلى مالك المكتب «{createdFirm?.name}» على البريد:
+          </p>
+          <p className="font-mono text-sm text-ink-800 bg-paper-soft rounded-lg px-3 py-2" dir="ltr">
+            {createdFirm?.email}
+          </p>
+          <p className="text-sm text-ink-500 leading-relaxed">
+            يجب على مالك المكتب فتح بريده الإلكتروني والضغط على رابط التفعيل لتعيين كلمة المرور الخاصة به وتفعيل المكتب.
+            الرابط صالح لمدة 24 ساعة، وإن لم تصل الرسالة فليتفقد مجلد الرسائل غير المرغوب فيها.
+          </p>
+          <Button onClick={() => setCreatedFirm(null)}>حسنًا</Button>
+        </div>
+      </Modal>
 
       {/* `key` forces a fresh FormModal per firm so form state doesn't leak
           between two different firms. */}
