@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import Modal from './Modal'
-import Button from './Button'
+import Button, { NEEDS_CONNECTION_HINT } from './Button'
+import { useConnectivity } from '../../lib/connectivity'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-paper-line bg-paper text-sm focus:outline-none focus:ring-2 focus:ring-brass-500/30 focus:border-brass-500'
@@ -119,6 +120,7 @@ function Field({ field, value, onChange }) {
 export default function FormModal({ open, onClose, title, fields, initialValues, onSubmit, submitLabel = 'حفظ' }) {
   const [values, setValues] = useState(initialValues ?? {})
   const [loading, setLoading] = useState(false)
+  const online = useConnectivity()
   const [error, setError] = useState(null)
 
   function update(name, value) {
@@ -177,10 +179,11 @@ export default function FormModal({ open, onClose, title, fields, initialValues,
         )}
 
         <div className="flex items-center gap-2 justify-end pt-3 mt-1 border-t border-paper-line">
+          {!online && <p className="text-xs text-ink-400 ml-auto">{NEEDS_CONNECTION_HINT}</p>}
           <Button type="button" variant="secondary" onClick={handleClose}>
             إلغاء
           </Button>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} requiresConnection>
             {loading ? 'جاري الحفظ...' : submitLabel}
           </Button>
         </div>

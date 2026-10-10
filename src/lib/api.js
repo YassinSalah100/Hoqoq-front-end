@@ -1,3 +1,4 @@
+import { configureConnectivity, isOnline, reportNetworkFailure, reportNetworkSuccess } from './connectivity'
 // Base URL is configurable via VITE_API_BASE_URL (see .env / .env.example).
 // Default matches docker-compose.yml's `api` service (PORT=3006, mapped
 // 3006:3006) — that's the port the backend actually listens on when you run
@@ -16,13 +17,20 @@ export function resolveAssetUrl(path) {
   return `${SERVER_ORIGIN}${path}`
 }
 
+configureConnectivity({ healthUrl: `${SERVER_ORIGIN}/health` })
+
 const STORAGE_KEY = 'hoqooq_session'
+
+// The desktop app's preload exposes OS-encrypted storage (Windows DPAPI via
+// Electron safeStorage); the web build falls back to localStorage.
+const secureStore = typeof window !== 'undefined' ? window.hoqooqSecure : undefined
 
 // Tokens must survive a page refresh — without this, every reload wipes the
 // in-memory session and bounces the user back to /login even though their
 // refresh token (and the backend session) is still perfectly valid.
 function readStoredTokens() {
   try {
+    if (secureStore) return secureStore.load() ?? {}
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? {}
   } catch {
     return {}
@@ -35,10 +43,17 @@ let onUnauthorized = null
 export function setTokens(tokens) {
   accessToken = tokens?.accessToken ?? null
   refreshToken = tokens?.refreshToken ?? null
-  if (accessToken && refreshToken) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken, refreshToken }))
-  } else {
-    localStorage.removeItem(STORAGE_KEY)
+  try {
+    if (secureStore) {
+      if (accessToken && refreshToken) secureStore.save({ accessToken, refreshToken })
+      else secureStore.clear()
+    } else if (accessToken && refreshToken) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken, refreshToken }))
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  } catch {
+    // Storage unavailable: the session still works in memory for this run.
   }
 }
 
@@ -61,6 +76,19 @@ export class ApiError extends Error {
     this.payload = payload
   }
 }
+
+export const OFFLINE_MESSAGE = 'لا يوجد اتصال بالإنترنت — يرجى التحقق من الاتصال'
+// A write that lost the connection mid-flight may or may not have been saved,
+// so the user is told the outcome is unknown rather than that it failed.
+const WRITE_UNKNOWN_MESSAGE = 'انقطع الاتصال ولم نتمكن من التأكد من إتمام العملية. راجع البيانات قبل إعادة المحاولة'
+
+// status 0 = the backend was never reached (offline, timeout, unreachable).
+export function isNetworkError(err) {
+  return err instanceof ApiError && err.status === 0
+}
+
+const REQUEST_TIMEOUT_MS = 30_000
+const UPLOAD_TIMEOUT_MS = 10 * 60_000
 
 // /auth/refresh rotates the refresh token server-side — it deletes the old
 // session row and issues a brand new refresh token, single-use (see
@@ -106,14 +134,28 @@ async function request(path, { method = 'GET', body, headers, isForm, skipAuthRe
   if (!isForm && body !== undefined) finalHeaders['Content-Type'] = 'application/json'
   if (accessToken) finalHeaders.Authorization = `Bearer ${accessToken}`
 
-  const res = await fetch(url, {
-    method,
-    headers: finalHeaders,
-    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
-  })
+  const isRead = method === 'GET' || method === 'HEAD'
+  // Writes are never sent while known to be offline, so nothing is half-saved.
+  if (!isRead && !isOnline()) {
+    throw new ApiError(OFFLINE_MESSAGE, 0, { code: 'OFFLINE' })
+  }
+
+  let res
+  let text
+  try {
+    res = await fetch(url, {
+      method,
+      headers: finalHeaders,
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
+      signal: AbortSignal.timeout(isForm ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS),
+    })
+    text = await res.text()
+  } catch {
+    reportNetworkFailure()
+    throw new ApiError(isRead ? OFFLINE_MESSAGE : WRITE_UNKNOWN_MESSAGE, 0, { code: 'NETWORK' })
+  }
 
   let payload = null
-  const text = await res.text()
   if (text) {
     try {
       payload = JSON.parse(text)
@@ -121,6 +163,14 @@ async function request(path, { method = 'GET', body, headers, isForm, skipAuthRe
       payload = text
     }
   }
+
+  // The desktop app's proxy answers 503 BACKEND_UNREACHABLE when it can't reach
+  // the server — same meaning as a dropped connection.
+  if (res.status === 503 && payload?.code === 'BACKEND_UNREACHABLE') {
+    reportNetworkFailure()
+    throw new ApiError(isRead ? OFFLINE_MESSAGE : WRITE_UNKNOWN_MESSAGE, 0, { code: 'NETWORK' })
+  }
+  reportNetworkSuccess()
 
   // On these endpoints a 401 means "the credentials you just typed are
   // wrong" (bad password, wrong old password, used/expired token) — not an
@@ -131,7 +181,9 @@ async function request(path, { method = 'GET', body, headers, isForm, skipAuthRe
     try {
       await refreshAccessToken()
       return request(path, { method, body, headers, isForm, skipAuthRetry: true })
-    } catch {
+    } catch (err) {
+      // Couldn't reach the server to refresh: keep the session, don't log out.
+      if (isNetworkError(err)) throw err
       onUnauthorized?.()
       throw new ApiError('انتهت صلاحية الجلسة، الرجاء تسجيل الدخول مجدداً', 401, payload)
     }

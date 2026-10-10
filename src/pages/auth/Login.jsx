@@ -4,6 +4,7 @@ import { Mail, Eye, EyeOff, AlertCircle, Briefcase, Gavel, Sparkles, ShieldCheck
 import { getDefaultRoute } from '../../data/auth'
 import { useAuth } from '../../context/AuthContext'
 import BrandMark from '../../components/ui/BrandMark'
+import ConnectionBanner from '../../components/ui/ConnectionBanner'
 
 const FEATURES = [
   { icon: Briefcase, label: 'إدارة القضايا', desc: 'تتبّع كل قضية من الفتح حتى الحكم' },
@@ -107,6 +108,7 @@ export default function Login() {
     <div className="min-h-screen flex bg-brand-cream-light" dir="rtl">
       {/* Form column */}
       <div className="flex-1 flex flex-col min-h-screen">
+        <ConnectionBanner />
         <div className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-[420px]">
             <div className="lg:hidden flex justify-center mb-10">

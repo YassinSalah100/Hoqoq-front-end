@@ -1,5 +1,19 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { authApi, usersApi, setTokens, setUnauthorizedHandler, hasStoredSession, ApiError } from '../lib/api'
+import { onReconnect } from '../lib/connectivity'
+
+// The desktop app serves Firm Admins and Employees only; platform
+// administration stays on the web.
+const IS_DESKTOP = import.meta.env.VITE_DESKTOP === 'true'
+const DESKTOP_SUPER_ADMIN_MESSAGE = 'حساب مشرف المنصة غير متاح في تطبيق سطح المكتب، استخدم الموقع'
+
+function blockedOnDesktop(user) {
+  return IS_DESKTOP && user?.accountType === 'SUPER_ADMIN'
+}
+
+// Only these mean the stored session is really over; anything else (offline,
+// timeout, server error) keeps the tokens so the user isn't logged out.
+const SESSION_ENDED_STATUSES = new Set([401, 402, 403])
 
 const AuthContext = createContext(null)
 
@@ -36,6 +50,8 @@ export function AuthProvider({ children }) {
   // Starts true whenever a token pair is already in storage, so routing waits
   // for the rehydration check below instead of flashing the login page.
   const [restoring, setRestoring] = useState(hasStoredSession())
+  // Set when the stored session couldn't be checked (e.g. offline at startup).
+  const [restoreError, setRestoreError] = useState(null)
 
   async function applySession({ accessToken, refreshToken, email, fallback }) {
     setTokens({ accessToken, refreshToken })
@@ -51,6 +67,15 @@ export function AuthProvider({ children }) {
     }
 
     const user = buildUser(profile, { ...fallback, email })
+    if (blockedOnDesktop(user)) {
+      try {
+        await authApi.logout()
+      } catch {
+        // best effort; the local session is cleared regardless
+      }
+      setTokens(null)
+      throw new Error(DESKTOP_SUPER_ADMIN_MESSAGE)
+    }
     setCurrentUser(user)
     return user
   }
@@ -64,18 +89,34 @@ export function AuthProvider({ children }) {
 
   // On first mount, if a token pair survived from a previous session (page
   // refresh, browser reopened), restore it instead of forcing a fresh login.
+  const restoreSession = useCallback(() => {
+    setRestoreError(null)
+    setRestoring(true)
+    usersApi
+      .me()
+      .then((profile) => {
+        const user = buildUser(profile)
+        if (blockedOnDesktop(user)) clearSession()
+        else setCurrentUser(user)
+      })
+      .catch((err) => {
+        if (err instanceof ApiError && SESSION_ENDED_STATUSES.has(err.status)) clearSession()
+        else setRestoreError(err)
+      })
+      .finally(() => setRestoring(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     if (!hasStoredSession()) {
       setRestoring(false)
       return
     }
-    usersApi
-      .me()
-      .then((profile) => setCurrentUser(buildUser(profile)))
-      .catch(() => clearSession())
-      .finally(() => setRestoring(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    restoreSession()
+  }, [restoreSession])
+
+  // Offline at startup: try again by itself as soon as the connection returns.
+  useEffect(() => (restoreError ? onReconnect(restoreSession) : undefined), [restoreError, restoreSession])
 
   async function login(email, password) {
     const res = await authApi.login(email, password)
@@ -99,7 +140,10 @@ export function AuthProvider({ children }) {
     clearSession()
   }
 
-  const value = useMemo(() => ({ currentUser, restoring, login, logout, setCurrentUser }), [currentUser, restoring])
+  const value = useMemo(
+    () => ({ currentUser, restoring, restoreError, retryRestore: restoreSession, login, logout, setCurrentUser }),
+    [currentUser, restoring, restoreError, restoreSession],
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

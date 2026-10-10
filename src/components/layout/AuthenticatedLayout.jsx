@@ -7,6 +7,7 @@ import Button from '../ui/Button'
 import { isFirmAdmin } from '../../data/auth'
 import { tenantsApi } from '../../lib/api'
 import { useFetch } from '../../hooks/useApi'
+import ConnectionBanner from '../ui/ConnectionBanner'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const GRACE_DAYS = 7 // BR-026
@@ -66,6 +67,7 @@ export default function AuthenticatedLayout({ user, onLogout }) {
     <div className="flex h-screen bg-paper" dir="rtl">
       <Sidebar user={user} onLogout={onLogout} mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
+        <ConnectionBanner />
         <TopBar user={user} onLogout={onLogout} onOpenMenu={() => setMobileNavOpen(true)} />
         {notice && (
           <div className={`flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 text-sm ${notice.tone}`}>

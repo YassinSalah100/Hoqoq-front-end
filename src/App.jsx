@@ -1,4 +1,6 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { WifiOff } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { getDefaultRoute } from './data/auth'
 import AuthenticatedLayout from './components/layout/AuthenticatedLayout'
@@ -20,24 +22,51 @@ import Invoices from './pages/finance/Invoices'
 import FinanceReports from './pages/finance/FinanceReports'
 import Employees from './pages/hr/Employees'
 import Roles from './pages/hr/Roles'
-import Firms from './pages/platform/Firms'
 import Settings from './pages/settings/Settings'
 import Subscription from './pages/settings/Subscription'
 import AuditLog from './pages/settings/AuditLog'
+import Button from './components/ui/Button'
+import { OFFLINE_MESSAGE, isNetworkError } from './lib/api'
+
+// Platform (Super Admin) pages are web-only: the desktop build replaces this
+// with null at compile time, so the page code isn't even shipped there.
+const Firms = import.meta.env.VITE_DESKTOP === 'true' ? null : lazy(() => import('./pages/platform/Firms'))
+
+function Spinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-paper">
+      <div className="w-8 h-8 border-2 border-brass-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
+
+// Shown when a saved session exists but couldn't be checked at startup. The
+// session is kept; it retries by itself when the connection returns.
+function StartupError({ error, onRetry }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-paper px-6" dir="rtl">
+      <div className="max-w-sm text-center flex flex-col items-center gap-4">
+        <div className="w-14 h-14 rounded-full bg-rust-100 flex items-center justify-center">
+          <WifiOff size={26} className="text-rust-500" />
+        </div>
+        <p className="text-base font-semibold text-ink-800">
+          {isNetworkError(error) ? OFFLINE_MESSAGE : 'تعذر الاتصال بالخادم حالياً'}
+        </p>
+        <p className="text-sm text-ink-500">جلستك محفوظة، وسيتم المتابعة تلقائيًا فور عودة الاتصال.</p>
+        <Button onClick={onRetry}>إعادة المحاولة</Button>
+      </div>
+    </div>
+  )
+}
 
 function Shell() {
-  const { currentUser, restoring, logout } = useAuth()
+  const { currentUser, restoring, restoreError, retryRestore, logout } = useAuth()
 
   // Wait for the stored-session check before deciding to bounce to /login —
   // otherwise every page refresh has a one-frame window where currentUser is
   // still null and the router redirects away from a perfectly valid session.
-  if (restoring) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-paper">
-        <div className="w-8 h-8 border-2 border-brass-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+  if (restoring) return <Spinner />
+  if (restoreError) return <StartupError error={restoreError} onRetry={retryRestore} />
 
   return (
     <Routes>
@@ -48,7 +77,16 @@ function Shell() {
         <Route index element={<Navigate to={getDefaultRoute(currentUser)} replace />} />
 
         {/* Platform administration (Super Admin) */}
-        <Route path="firms" element={<Firms />} />
+        {Firms && (
+          <Route
+            path="firms"
+            element={
+              <Suspense fallback={<Spinner />}>
+                <Firms />
+              </Suspense>
+            }
+          />
+        )}
 
         {/* Firm workspace */}
         <Route path="dashboard" element={<Dashboard />} />
