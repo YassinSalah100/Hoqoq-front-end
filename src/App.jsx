@@ -27,10 +27,11 @@ import Subscription from './pages/settings/Subscription'
 import AuditLog from './pages/settings/AuditLog'
 import Button from './components/ui/Button'
 import { OFFLINE_MESSAGE, isNetworkError } from './lib/api'
+import { IS_ADMIN_APP, IS_FIRM_APP } from './lib/appVariant'
 
-// Platform (Super Admin) pages are web-only: the desktop build replaces this
-// with null at compile time, so the page code isn't even shipped there.
-const Firms = import.meta.env.VITE_DESKTOP === 'true' ? null : lazy(() => import('./pages/platform/Firms'))
+// Platform (Super Admin) pages: the firm desktop app replaces this with null
+// at compile time, so the page code isn't even shipped there.
+const Firms = IS_FIRM_APP ? null : lazy(() => import('./pages/platform/Firms'))
 
 function Spinner() {
   return (
@@ -88,7 +89,8 @@ function Shell() {
           />
         )}
 
-        {/* Firm workspace */}
+        {/* Firm workspace — not part of the Super Admin desktop app */}
+        {!IS_ADMIN_APP && <>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="cases" element={<Cases />} />
         <Route path="cases/:id" element={<CaseDetail />} />
@@ -104,13 +106,14 @@ function Shell() {
         <Route path="settings" element={<Settings />} />
         <Route path="subscription" element={<Subscription />} />
         <Route path="audit-log" element={<AuditLog />} />
+        </>}
       </Route>
 
       {/* v1 is invite-only: no public signup, no marketplace. */}
       <Route path="/login" element={currentUser ? <Navigate to={getDefaultRoute(currentUser)} replace /> : <Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/activate" element={<Activate />} />
+      {!IS_ADMIN_APP && <Route path="/activate" element={<Activate />} />}
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="*" element={<Navigate to="/" replace />} />

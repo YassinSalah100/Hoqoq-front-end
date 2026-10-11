@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "build:desktop": "vite build --mode desktop --outDir desktop/app/renderer --emptyOutDir"
+    "build:desktop": "vite build --mode desktop --outDir desktop/app/renderer --emptyOutDir",
+    "build:desktop-admin": "vite build --mode desktop-admin --outDir desktop/app/renderer --emptyOutDir"
   },
   "dependencies": {
     "@fontsource/amiri": "^5.3.0",

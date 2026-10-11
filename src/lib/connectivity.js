@@ -19,6 +19,9 @@ const reconnectListeners = new Set()
 
 export function configureConnectivity({ healthUrl: url }) {
   healthUrl = url
+  // Check once at startup so the offline notice shows right away, not only
+  // after the first request fails.
+  if (typeof window !== 'undefined') probe()
 }
 
 function emit() {

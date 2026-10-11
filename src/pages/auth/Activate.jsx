@@ -13,13 +13,25 @@ const ERROR_MESSAGES = {
   'Employee credentials are administered by the Firm Admin': 'بيانات دخول الموظفين يحددها مدير المكتب، تواصل معه',
 }
 
+// Accepts the full emailed link (any host) or the bare token.
+function tokenFromPasted(value) {
+  const text = value.trim()
+  if (!text) return ''
+  const match = /[?&]token=([A-Za-z0-9_-]{20,})/.exec(text)
+  if (match) return match[1]
+  return /^[A-Za-z0-9_-]{20,}$/.test(text) ? text : ''
+}
+
 // One-time Firm Admin activation from the invitation email — just
 // POST /auth/activate { token, newPassword }. Employees never come through
 // here: their credentials are set by the Firm Admin directly.
 export default function Activate() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const token = searchParams.get('token') ?? ''
+  // In the desktop app there is no website for the emailed link to open, so
+  // the owner pastes the link (or just its token) here instead.
+  const [pasted, setPasted] = useState('')
+  const token = searchParams.get('token') || tokenFromPasted(pasted)
 
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -59,9 +71,22 @@ export default function Activate() {
         <p className="text-sm text-ink-400 mb-6">اختر كلمة مرور لحسابك لتتمكن من تسجيل الدخول</p>
 
         {!token ? (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-rust-100 border border-rust-200">
-            <AlertCircle size={14} className="text-rust-500 shrink-0" />
-            <p className="text-sm text-rust-600">رابط التفعيل غير صالح — تأكد من فتح نفس الرابط المُرسل إلى بريدك الإلكتروني.</p>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-ink-700">رابط التفعيل</label>
+            <input
+              dir="ltr"
+              value={pasted}
+              onChange={(e) => setPasted(e.target.value)}
+              placeholder="https://…/activate?token=…"
+              className={inputClass}
+            />
+            <p className="text-xs text-ink-400">انسخ رابط التفعيل من البريد الإلكتروني والصقه هنا.</p>
+            {pasted.trim() && (
+              <div className="flex items-center gap-2 p-3 mt-2 rounded-xl bg-rust-100 border border-rust-200">
+                <AlertCircle size={14} className="text-rust-500 shrink-0" />
+                <p className="text-sm text-rust-600">هذا ليس رابط تفعيل صحيحًا — انسخ الرابط كاملًا من البريد.</p>
+              </div>
+            )}
           </div>
         ) : done ? (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-brass-100 border border-brass-200">

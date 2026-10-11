@@ -1,15 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { authApi, usersApi, setTokens, setUnauthorizedHandler, hasStoredSession, ApiError } from '../lib/api'
 import { onReconnect } from '../lib/connectivity'
-
-// The desktop app serves Firm Admins and Employees only; platform
-// administration stays on the web.
-const IS_DESKTOP = import.meta.env.VITE_DESKTOP === 'true'
-const DESKTOP_SUPER_ADMIN_MESSAGE = 'حساب مشرف المنصة غير متاح في تطبيق سطح المكتب، استخدم الموقع'
-
-function blockedOnDesktop(user) {
-  return IS_DESKTOP && user?.accountType === 'SUPER_ADMIN'
-}
+import { accountRefusal } from '../lib/appVariant'
 
 // Only these mean the stored session is really over; anything else (offline,
 // timeout, server error) keeps the tokens so the user isn't logged out.
@@ -67,14 +59,15 @@ export function AuthProvider({ children }) {
     }
 
     const user = buildUser(profile, { ...fallback, email })
-    if (blockedOnDesktop(user)) {
+    const refusal = accountRefusal(user)
+    if (refusal) {
       try {
         await authApi.logout()
       } catch {
         // best effort; the local session is cleared regardless
       }
       setTokens(null)
-      throw new Error(DESKTOP_SUPER_ADMIN_MESSAGE)
+      throw new Error(refusal)
     }
     setCurrentUser(user)
     return user
@@ -96,7 +89,7 @@ export function AuthProvider({ children }) {
       .me()
       .then((profile) => {
         const user = buildUser(profile)
-        if (blockedOnDesktop(user)) clearSession()
+        if (accountRefusal(user)) clearSession()
         else setCurrentUser(user)
       })
       .catch((err) => {

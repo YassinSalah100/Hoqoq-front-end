@@ -5,6 +5,7 @@ import { getDefaultRoute } from '../../data/auth'
 import { useAuth } from '../../context/AuthContext'
 import BrandMark from '../../components/ui/BrandMark'
 import ConnectionBanner from '../../components/ui/ConnectionBanner'
+import { IS_ADMIN_APP } from '../../lib/appVariant'
 
 const FEATURES = [
   { icon: Briefcase, label: 'إدارة القضايا', desc: 'تتبّع كل قضية من الفتح حتى الحكم' },
@@ -213,6 +214,15 @@ export default function Login() {
                 )}
               </button>
             </form>
+
+            {!IS_ADMIN_APP && (
+              <p className="mt-5 text-center text-[14px] text-brand-brown/70">
+                مالك مكتب جديد ولديك رابط تفعيل؟{' '}
+                <Link to="/activate" className="text-brand-gold hover:text-brand-tagline font-medium">
+                  فعّل حسابك
+                </Link>
+              </p>
+            )}
 
             <div className="flex items-center justify-center gap-1.5 mt-6 text-[13px] text-brand-brown/55">
               <Lock size={14} />
