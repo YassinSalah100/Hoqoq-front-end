@@ -14,10 +14,12 @@ import {
   UserCog,
   Wallet,
   ClipboardList,
+  Users as Users2,
+  ListChecks,
+  FileText,
 } from 'lucide-react'
 import Reveal from './Reveal'
-import { useAutoplay, useReveal } from './motion'
-import { DownloadButton } from './Chrome'
+import { useReveal } from './motion'
 import { CONTACT_EMAIL } from './config'
 
 export const SCREENS = [
@@ -39,33 +41,6 @@ export function WindowFrame({ children, className = '', label = 'حقوق — إ
         </span>
       </div>
       {children}
-    </div>
-  )
-}
-
-// A stack of screenshots that crossfade on their own; the visible one zooms
-// in very slowly. `index` comes from useAutoplay.
-export function ScreenStack({ index, eagerFirst = false, alt = '' }) {
-  return (
-    <div className="relative overflow-hidden bg-white">
-      {SCREENS.map((s, i) => (
-        <img
-          key={s.src}
-          src={s.src}
-          alt={i === index ? alt || s.title : ''}
-          aria-hidden={i !== index}
-          loading={i === 0 && eagerFirst ? 'eager' : 'lazy'}
-          className={`shot-layer block w-full h-auto ${i === 0 ? 'relative' : 'absolute inset-0'} ${i === index ? 'opacity-100' : 'opacity-0'}`}
-        />
-      ))}
-      {/* Zoom layer on top of the active image so the crossfade stays clean. */}
-      <img
-        key={`zoom-${index}`}
-        src={SCREENS[index].src}
-        alt=""
-        aria-hidden="true"
-        className="kenburns absolute inset-0 w-full h-full object-cover pointer-events-none"
-      />
     </div>
   )
 }
@@ -221,13 +196,34 @@ function ShowcaseRow({ item, flip }) {
   )
 }
 
+const MORE = [
+  { icon: Users2, title: 'الموكلون والخصوم', text: 'بيانات كل طرف داخل قضيته، ورؤية الموكل عبر كل قضاياه ومستحقاته.' },
+  { icon: ListChecks, title: 'المهام', text: 'مهام بأولويات ومواعيد، وتنبيه بالمتأخر منها.' },
+  { icon: FileText, title: 'المستندات', text: 'رفع وتصنيف المستندات مع الاحتفاظ بكل إصداراتها.' },
+  { icon: UserCog, title: 'الموظفون والصلاحيات', text: 'حسابات للفريق وصلاحيات على مستوى كل قضية.' },
+]
+
 export function Showcase() {
   return (
-    <section id="showcase" className="scroll-mt-20 py-20 sm:py-28 bg-brand-cream">
+    <section id="features" className="scroll-mt-20 py-20 sm:py-28 mt-20 sm:mt-28 bg-brand-cream">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col gap-20 sm:gap-28">
         {SHOWCASE.map((item, i) => (
           <ShowcaseRow key={item.eyebrow} item={item} flip={i % 2 === 1} />
         ))}
+      </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-20 sm:mt-24">
+        <Reveal className="text-center mb-8">
+          <h3 className="font-display text-[24px] sm:text-[28px] font-bold">وكل ما يحتاجه مكتبك أيضًا</h3>
+        </Reveal>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {MORE.map(({ icon: Icon, title, text }, i) => (
+            <Reveal key={title} delay={i * 80} className="lift rounded-2xl bg-white border border-brand-border p-5">
+              <Icon size={20} className="text-brand-gold mb-3" />
+              <p className="font-semibold text-[15px] mb-1.5">{title}</p>
+              <p className="text-[13.5px] text-brand-brown/60 leading-relaxed">{text}</p>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -275,36 +271,3 @@ export function Trust() {
   )
 }
 
-export function FinalCta() {
-  const { index, ref } = useAutoplay(SCREENS.length, { interval: 4200 })
-  return (
-    <section className="relative py-20 sm:py-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <Reveal scale className="relative overflow-hidden rounded-[28px] bg-brand-brown text-brand-cream">
-          <div className="hero-glow absolute -top-1/2 -right-1/4 w-[70%] h-[160%] rounded-full bg-[radial-gradient(closest-side,rgba(217,180,94,0.16),transparent)] pointer-events-none" aria-hidden="true" />
-          <div className="relative grid lg:grid-cols-[1.05fr_1fr] gap-10 items-center p-8 sm:p-12 lg:p-14">
-            <div className="text-center lg:text-right">
-              <h2 className="font-display text-[30px] sm:text-[40px] font-bold leading-snug">جاهز لتنظيم مكتبك؟</h2>
-              <p className="mt-4 text-brand-cream/70 text-[16px] sm:text-lg leading-relaxed">حمّل التطبيق الآن، وراسلنا لنُنشئ حساب مكتبك ونساعدك في البداية.</p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start items-center sm:items-start">
-                <DownloadButton size="lg" withMeta className="w-full sm:w-auto text-brand-cream" />
-                <a
-                  href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('طلب حساب مكتب على حقوق')}`}
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-brand-cream/25 px-7 py-3.5 text-[16px] text-brand-cream hover:bg-white/[0.06] transition-colors"
-                >
-                  <Mail size={18} />
-                  اطلب حسابًا لمكتبك
-                </a>
-              </div>
-            </div>
-            <div ref={ref} className="hidden lg:block">
-              <WindowFrame className="rotate-[-2deg] shadow-[0_40px_80px_-30px_rgba(0,0,0,0.7)]">
-                <ScreenStack index={index} />
-              </WindowFrame>
-            </div>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  )
-}

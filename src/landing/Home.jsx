@@ -1,13 +1,8 @@
 import { useState } from 'react'
 import {
-  Briefcase,
   CalendarDays,
   Users,
-  ListChecks,
-  FileText,
-  Wallet,
   ShieldCheck,
-  Building2,
   MailCheck,
   Download,
   UserCog,
@@ -25,21 +20,10 @@ import {
 import './landing.css'
 import { Header, Footer, DownloadButton, BackToTop } from './Chrome'
 import Reveal from './Reveal'
-import { useReveal, isWindowsDevice, useAutoplay } from './motion'
-import { SCREENS, WindowFrame, ScreenStack, Roles, Showcase, Trust, FinalCta } from './Sections'
+import { useReveal, isWindowsDevice } from './motion'
+import { SCREENS, WindowFrame, Roles, Showcase, Trust } from './Sections'
 import LiveDemo from './demo/LiveDemo'
 import { CONTACT_EMAIL, SYSTEM_REQUIREMENTS } from './config'
-
-const FEATURES = [
-  { icon: Briefcase, title: 'إدارة القضايا', text: 'ملف متكامل لكل قضية: بياناتها، المحكمة والدائرة، الموكلون والخصوم، والحالة من المسودة حتى الإغلاق والأرشفة.' },
-  { icon: CalendarDays, title: 'الجلسات والتقويم', text: 'جدولة الجلسات ومتابعة نتائجها وتأجيلها، مع تقويم موحّد يجمع الجلسات والمهام والمواعيد.' },
-  { icon: Users, title: 'الموكلون والخصوم', text: 'بيانات الموكلين والخصوم داخل كل قضية، مع التعرّف على الموكل المتكرر عبر قضايا متعددة.' },
-  { icon: ListChecks, title: 'المهام والمتابعة', text: 'توزيع المهام على فريقك بأولويات ومواعيد استحقاق، وتنبيه بالمهام المتأخرة.' },
-  { icon: FileText, title: 'المستندات', text: 'حفظ مستندات القضايا وتصنيفها والاحتفاظ بكل إصداراتها السابقة دون حذف.' },
-  { icon: Wallet, title: 'الإدارة المالية', text: 'الأتعاب المتفق عليها والدفعات والمتبقي لكل قضية ولكل موكل، مع تقارير مالية للمكتب.' },
-  { icon: UserCog, title: 'صلاحيات دقيقة', text: 'يحدد مدير المكتب ما يراه ويفعله كل موظف، وعلى مستوى كل قضية على حدة.' },
-  { icon: Building2, title: 'بيانات كل مكتب منفصلة', text: 'لا يطّلع أي مكتب على بيانات مكتب آخر؛ الفصل مُطبَّق على مستوى الخادم في كل طلب.' },
-]
 
 const HIGHLIGHTS = [
   { icon: Languages, text: 'واجهة عربية بالكامل' },
@@ -98,7 +82,6 @@ function SectionTitle({ eyebrow, title, intro, light = false }) {
 }
 
 function Hero() {
-  const { index, ref } = useAutoplay(SCREENS.length, { interval: 4500 })
   return (
     <section className="relative z-10 bg-brand-brown text-brand-cream">
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
@@ -133,16 +116,11 @@ function Hero() {
           </div>
         </div>
 
-        <div ref={ref} className="relative lg:-mb-20">
+        <div className="relative lg:-mb-20">
           <div className="hero-shot">
-            <WindowFrame label={`حقوق — ${SCREENS[index].title}`}>
-              <ScreenStack index={index} eagerFirst alt="لقطة من تطبيق حقوق" />
+            <WindowFrame label="حقوق — لوحة التحكم">
+              <img src={SCREENS[0].src} alt="لوحة تحكم تطبيق حقوق" className="block w-full h-auto" fetchpriority="high" />
             </WindowFrame>
-            <div className="mt-4 flex justify-center gap-1.5" aria-hidden="true">
-              {SCREENS.map((sc, i) => (
-                <span key={sc.src} className={`h-1.5 rounded-full transition-all duration-500 ${i === index ? 'w-6 bg-brand-gold-light' : 'w-1.5 bg-white/25'}`} />
-              ))}
-            </div>
           </div>
           <div
             className="float-card hidden sm:flex absolute -right-4 lg:-right-10 top-[18%] items-center gap-3 rounded-xl bg-white text-brand-brown border border-brand-border px-4 py-3 shadow-[0_18px_40px_-18px_rgba(43,32,16,0.55)]"
@@ -218,31 +196,6 @@ function DemoSection() {
   )
 }
 
-function Features() {
-  return (
-    <section id="features" className="scroll-mt-20 py-20 sm:py-28">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <SectionTitle eyebrow="المزايا" title="كل ما يحتاجه مكتبك في مكان واحد" intro="صُمّم حقوق لطبيعة عمل مكاتب المحاماة في مصر: من فتح القضية حتى تحصيل الأتعاب." />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {FEATURES.map(({ icon: Icon, title, text }, i) => (
-            <Reveal
-              key={title}
-              delay={(i % 4) * 90}
-              className="lift group rounded-2xl bg-white border border-brand-border p-6 hover:border-brand-gold/45 hover:shadow-[0_22px_45px_-28px_rgba(43,32,16,0.5)]"
-            >
-              <div className="w-11 h-11 rounded-xl bg-brand-cream text-brand-gold flex items-center justify-center mb-5 transition-colors duration-300 group-hover:bg-brand-brown group-hover:text-brand-gold-light">
-                <Icon size={21} />
-              </div>
-              <h3 className="font-semibold text-[17px] mb-2">{title}</h3>
-              <p className="text-[14.5px] text-brand-brown/60 leading-relaxed">{text}</p>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function HowItWorks() {
   const lineRef = useReveal({ threshold: 0.3 })
   return (
@@ -276,54 +229,6 @@ function HowItWorks() {
             {CONTACT_EMAIL}
           </a>
         </Reveal>
-      </div>
-    </section>
-  )
-}
-
-function Screens() {
-  const [hover, setHover] = useState(false)
-  const INTERVAL = 5200
-  const { index, setIndex, running, ref } = useAutoplay(SCREENS.length, { interval: INTERVAL, paused: hover })
-  return (
-    <section id="screens" className="scroll-mt-20 py-20 sm:py-28">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <SectionTitle eyebrow="من داخل التطبيق" title="واجهة عربية واضحة ومريحة" intro="صُممت الواجهة بالكامل باللغة العربية ومن اليمين إلى اليسار، لتجد كل شيء في مكانه المتوقع." />
-        <div ref={ref} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onFocus={() => setHover(true)} onBlur={() => setHover(false)}>
-          <Reveal className="flex justify-center mb-8">
-            <div role="tablist" aria-label="لقطات من التطبيق" className="grid grid-cols-2 sm:inline-flex gap-1 rounded-2xl bg-brand-cream p-1.5 w-full sm:w-auto">
-              {SCREENS.map((sc, i) => (
-                <button
-                  key={sc.src}
-                  type="button"
-                  role="tab"
-                  aria-selected={index === i}
-                  onClick={() => setIndex(i)}
-                  className={`relative overflow-hidden px-4 sm:px-5 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-300 ${
-                    index === i ? 'bg-white text-brand-brown shadow-[0_6px_16px_-10px_rgba(43,32,16,0.6)]' : 'text-brand-brown/55 hover:text-brand-brown'
-                  }`}
-                >
-                  {sc.title}
-                  {index === i && (
-                    <span
-                      key={`p-${index}`}
-                      className={`tab-progress absolute bottom-0 inset-x-0 h-[2px] bg-brand-gold ${running ? '' : 'paused'}`}
-                      style={{ '--dur': `${INTERVAL}ms` }}
-                    />
-                  )}
-                </button>
-              ))}
-            </div>
-          </Reveal>
-          <Reveal scale className="max-w-5xl mx-auto">
-            <WindowFrame label={`حقوق — ${SCREENS[index].title}`}>
-              <ScreenStack index={index} />
-            </WindowFrame>
-            <p key={index} className="hero-in text-center mt-6 text-brand-brown/60">
-              {SCREENS[index].text}
-            </p>
-          </Reveal>
-        </div>
       </div>
     </section>
   )
@@ -375,9 +280,18 @@ function DownloadSection() {
           <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-brand-gold-light mb-7">
             <Monitor size={30} />
           </div>
-          <h2 className="font-display text-[30px] sm:text-[42px] font-bold">حمّل حقوق لنظام Windows</h2>
-          <p className="mt-4 text-brand-cream/65 text-lg">تطبيق مكتب المحاماة للمالك والمحامين والموظفين.</p>
-          <DownloadButton size="lg" withMeta className="mt-9 text-brand-cream" />
+          <h2 className="font-display text-[30px] sm:text-[42px] font-bold">جاهز لتنظيم مكتبك؟</h2>
+          <p className="mt-4 text-brand-cream/65 text-lg">حمّل التطبيق، وراسلنا لنُنشئ حساب مكتبك ونساعدك في البداية.</p>
+          <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center items-center sm:items-start">
+            <DownloadButton size="lg" withMeta className="w-full sm:w-auto text-brand-cream" />
+            <a
+              href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('طلب حساب مكتب على حقوق')}`}
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-brand-cream/25 px-7 py-3.5 text-[16px] text-brand-cream hover:bg-white/[0.06] transition-colors"
+            >
+              <MailCheck size={18} />
+              اطلب حسابًا لمكتبك
+            </a>
+          </div>
           {!onWindows && (
             <p className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white/[0.06] border border-white/10 px-4 py-2.5 text-[14px] text-brand-cream/80">
               <Info size={16} className="text-brand-gold-light shrink-0" />
@@ -424,13 +338,10 @@ export default function Home() {
         <Hero />
         <Highlights />
         <DemoSection />
-        <Features />
-        <Roles />
         <Showcase />
+        <Roles />
         <HowItWorks />
-        <Screens />
         <Trust />
-        <FinalCta />
         <Faq />
         <DownloadSection />
       </main>
