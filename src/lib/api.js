@@ -315,6 +315,18 @@ export const notificationsApi = {
 }
 
 // ---- Employees ----
+// The directory has been served in two shapes: specializationId +
+// isGeneralSpecialization, or a specializations list (GENERAL or a Case Type
+// id). Accept both so the lawyer pickers match Lawyers to the Case Type either way.
+function normalizeDirectoryEntry(entry) {
+  const list = Array.isArray(entry?.specializations) ? entry.specializations : []
+  return {
+    ...entry,
+    isGeneralSpecialization: entry?.isGeneralSpecialization ?? list.includes('GENERAL'),
+    specializationId: entry?.specializationId ?? list.find((value) => value !== 'GENERAL') ?? null,
+  }
+}
+
 export const employeesApi = {
   // OnboardEmployeeDto: email, password (set by the Firm Admin, no
   // invitation email for employees), fullName, jobClassification, hireDate,
@@ -326,7 +338,7 @@ export const employeesApi = {
   // Names + specialization only, readable by any firm member — use this for
   // assignment pickers (lead lawyer, hearing/task assignee) instead of list(),
   // which needs the HR permission employee.view.
-  directory: () => get('/employees/directory'),
+  directory: () => get('/employees/directory').then((rows) => (Array.isArray(rows) ? rows.map(normalizeDirectoryEntry) : rows)),
   get: (id) => get(`/employees/${id}`),
   update: (id, data) => patch(`/employees/${id}`, data), // position, department, hireDate, specializationId, generalSpecialization
   remove: (id) => del(`/employees/${id}`), // deactivates (BR-012: never deleted)
