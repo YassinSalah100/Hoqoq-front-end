@@ -23,7 +23,8 @@ import {
 import './landing.css'
 import { Header, Footer, DownloadButton, BackToTop } from './Chrome'
 import Reveal from './Reveal'
-import { useReveal, isWindowsDevice } from './motion'
+import { useReveal, isWindowsDevice, useAutoplay } from './motion'
+import { SCREENS, WindowFrame, ScreenStack, Roles, Showcase, Trust, FinalCta } from './Sections'
 import { CONTACT_EMAIL, SYSTEM_REQUIREMENTS } from './config'
 
 const FEATURES = [
@@ -48,13 +49,6 @@ const STEPS = [
   { icon: MailCheck, title: 'نُنشئ حساب مكتبك', text: 'تواصل معنا، ونُنشئ مساحة مكتبك وحساب المالك، فتصلك رسالة تفعيل على بريدك الإلكتروني.' },
   { icon: Download, title: 'حمّل التطبيق وفعّل حسابك', text: 'ثبّت حقوق على جهازك، ثم افتح رابط التفعيل واضغط «فتح تطبيق حقوق» لاختيار كلمة المرور.' },
   { icon: Users, title: 'أضف فريقك وابدأ العمل', text: 'أنشئ حسابات المحامين والموظفين بصلاحياتهم، وابدأ بإدارة قضاياك وجلساتك من مكان واحد.' },
-]
-
-const SCREENS = [
-  { src: '/landing/screens/dashboard.webp', title: 'لوحة التحكم', text: 'نظرة سريعة على قضايا مكتبك وجلساتك القادمة وأرقامه المالية.' },
-  { src: '/landing/screens/cases.webp', title: 'القضايا', text: 'كل قضايا المكتب بحالاتها ومحاكمها والمحامي المسؤول عنها.' },
-  { src: '/landing/screens/hearings.webp', title: 'الجلسات', text: 'جدول الجلسات القادمة والسابقة ونتائجها.' },
-  { src: '/landing/screens/finance.webp', title: 'التقارير المالية', text: 'الأتعاب والمحصَّل والمستحق لكل قضية وكل موكل.' },
 ]
 
 const FAQ = [
@@ -84,22 +78,6 @@ const FAQ = [
   },
 ]
 
-function WindowFrame({ children, className = '' }) {
-  return (
-    <div className={`rounded-2xl overflow-hidden border border-brand-border bg-white shadow-[0_40px_80px_-40px_rgba(43,32,16,0.55)] ${className}`}>
-      <div className="flex items-center gap-1.5 px-4 h-8 bg-brand-cream border-b border-brand-border" dir="ltr">
-        <span className="w-2.5 h-2.5 rounded-full bg-[#e2d3b3]" />
-        <span className="w-2.5 h-2.5 rounded-full bg-[#e2d3b3]" />
-        <span className="w-2.5 h-2.5 rounded-full bg-[#e2d3b3]" />
-        <span className="mx-auto text-[11px] text-brand-brown/40 font-medium" dir="rtl">
-          حقوق — إدارة المكاتب
-        </span>
-      </div>
-      {children}
-    </div>
-  )
-}
-
 function SectionTitle({ eyebrow, title, intro, light = false }) {
   return (
     <Reveal className="max-w-2xl mx-auto text-center mb-12 sm:mb-16">
@@ -117,6 +95,7 @@ function SectionTitle({ eyebrow, title, intro, light = false }) {
 }
 
 function Hero() {
+  const { index, ref } = useAutoplay(SCREENS.length, { interval: 4500 })
   return (
     <section className="relative z-10 bg-brand-brown text-brand-cream">
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
@@ -150,11 +129,16 @@ function Hero() {
           </div>
         </div>
 
-        <div className="relative lg:-mb-20">
+        <div ref={ref} className="relative lg:-mb-20">
           <div className="hero-shot">
-            <WindowFrame>
-              <img src="/landing/screens/dashboard.webp" alt="لوحة تحكم تطبيق حقوق" className="block w-full h-auto" fetchpriority="high" />
+            <WindowFrame label={`حقوق — ${SCREENS[index].title}`}>
+              <ScreenStack index={index} eagerFirst alt="لقطة من تطبيق حقوق" />
             </WindowFrame>
+            <div className="mt-4 flex justify-center gap-1.5" aria-hidden="true">
+              {SCREENS.map((sc, i) => (
+                <span key={sc.src} className={`h-1.5 rounded-full transition-all duration-500 ${i === index ? 'w-6 bg-brand-gold-light' : 'w-1.5 bg-white/25'}`} />
+              ))}
+            </div>
           </div>
           <div
             className="float-card hidden sm:flex absolute -right-4 lg:-right-10 top-[18%] items-center gap-3 rounded-xl bg-white text-brand-brown border border-brand-border px-4 py-3 shadow-[0_18px_40px_-18px_rgba(43,32,16,0.55)]"
@@ -267,49 +251,48 @@ function HowItWorks() {
 }
 
 function Screens() {
-  const [active, setActive] = useState(0)
+  const [hover, setHover] = useState(false)
+  const INTERVAL = 5200
+  const { index, setIndex, running, ref } = useAutoplay(SCREENS.length, { interval: INTERVAL, paused: hover })
   return (
     <section id="screens" className="scroll-mt-20 py-20 sm:py-28">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionTitle eyebrow="من داخل التطبيق" title="واجهة عربية واضحة ومريحة" intro="صُممت الواجهة بالكامل باللغة العربية ومن اليمين إلى اليسار، لتجد كل شيء في مكانه المتوقع." />
-        <Reveal className="flex justify-center mb-8">
-          <div role="tablist" aria-label="لقطات من التطبيق" className="inline-flex flex-wrap justify-center gap-1 rounded-2xl bg-brand-cream p-1.5">
-            {SCREENS.map((s, i) => (
-              <button
-                key={s.src}
-                type="button"
-                role="tab"
-                aria-selected={active === i}
-                onClick={() => setActive(i)}
-                className={`px-4 sm:px-5 py-2 rounded-xl text-[14px] font-medium transition-all duration-300 ${
-                  active === i ? 'bg-white text-brand-brown shadow-[0_6px_16px_-10px_rgba(43,32,16,0.6)]' : 'text-brand-brown/55 hover:text-brand-brown'
-                }`}
-              >
-                {s.title}
-              </button>
-            ))}
-          </div>
-        </Reveal>
-        <Reveal scale className="max-w-5xl mx-auto">
-          <WindowFrame>
-            <div className="relative">
-              {SCREENS.map((s, i) => (
-                <img
-                  key={s.src}
-                  src={s.src}
-                  alt={s.title}
-                  loading={i === 0 ? 'eager' : 'lazy'}
-                  className={`shot-layer block w-full h-auto ${i === 0 ? 'relative' : 'absolute inset-0'} ${
-                    active === i ? 'opacity-100 scale-100' : 'opacity-0 scale-[1.01]'
+        <div ref={ref} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onFocus={() => setHover(true)} onBlur={() => setHover(false)}>
+          <Reveal className="flex justify-center mb-8">
+            <div role="tablist" aria-label="لقطات من التطبيق" className="grid grid-cols-2 sm:inline-flex gap-1 rounded-2xl bg-brand-cream p-1.5 w-full sm:w-auto">
+              {SCREENS.map((sc, i) => (
+                <button
+                  key={sc.src}
+                  type="button"
+                  role="tab"
+                  aria-selected={index === i}
+                  onClick={() => setIndex(i)}
+                  className={`relative overflow-hidden px-4 sm:px-5 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-300 ${
+                    index === i ? 'bg-white text-brand-brown shadow-[0_6px_16px_-10px_rgba(43,32,16,0.6)]' : 'text-brand-brown/55 hover:text-brand-brown'
                   }`}
-                />
+                >
+                  {sc.title}
+                  {index === i && (
+                    <span
+                      key={`p-${index}`}
+                      className={`tab-progress absolute bottom-0 inset-x-0 h-[2px] bg-brand-gold ${running ? '' : 'paused'}`}
+                      style={{ '--dur': `${INTERVAL}ms` }}
+                    />
+                  )}
+                </button>
               ))}
             </div>
-          </WindowFrame>
-          <p key={active} className="hero-in text-center mt-6 text-brand-brown/60">
-            {SCREENS[active].text}
-          </p>
-        </Reveal>
+          </Reveal>
+          <Reveal scale className="max-w-5xl mx-auto">
+            <WindowFrame label={`حقوق — ${SCREENS[index].title}`}>
+              <ScreenStack index={index} />
+            </WindowFrame>
+            <p key={index} className="hero-in text-center mt-6 text-brand-brown/60">
+              {SCREENS[index].text}
+            </p>
+          </Reveal>
+        </div>
       </div>
     </section>
   )
@@ -410,8 +393,12 @@ export default function Home() {
         <Hero />
         <Highlights />
         <Features />
+        <Roles />
+        <Showcase />
         <HowItWorks />
         <Screens />
+        <Trust />
+        <FinalCta />
         <Faq />
         <DownloadSection />
       </main>

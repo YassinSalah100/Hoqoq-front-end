@@ -64,3 +64,32 @@ export function isWindowsDevice() {
   const platform = navigator.userAgentData?.platform ?? navigator.platform ?? ''
   return /win/i.test(platform) || /Windows NT/i.test(navigator.userAgent)
 }
+
+// Advances an index every `interval` ms while not paused. Stops when the
+// element is off screen or the tab is hidden, and when the visitor prefers
+// reduced motion (they can still switch manually).
+export function useAutoplay(count, { interval = 5000, paused = false } = {}) {
+  const [index, setIndex] = useState(0)
+  const [inView, setInView] = useState(true)
+  const ref = useRef(null)
+  const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.25 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const running = !paused && inView && !reduced && count > 1
+  useEffect(() => {
+    if (!running) return undefined
+    const timer = setTimeout(() => {
+      if (document.visibilityState === 'visible') setIndex((i) => (i + 1) % count)
+    }, interval)
+    return () => clearTimeout(timer)
+  }, [running, index, count, interval])
+
+  return { index, setIndex, running, ref }
+}

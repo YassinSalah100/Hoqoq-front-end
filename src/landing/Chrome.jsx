@@ -7,6 +7,7 @@ import { useActiveSection, useScrolled } from './motion'
 
 const NAV = [
   ['features', 'المزايا'],
+  ['roles', 'لفريقك'],
   ['how', 'كيف يعمل'],
   ['screens', 'من داخل التطبيق'],
   ['faq', 'الأسئلة الشائعة'],
