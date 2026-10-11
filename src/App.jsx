@@ -27,11 +27,11 @@ import Subscription from './pages/settings/Subscription'
 import AuditLog from './pages/settings/AuditLog'
 import Button from './components/ui/Button'
 import { OFFLINE_MESSAGE, isNetworkError } from './lib/api'
-import { IS_ADMIN_APP, IS_FIRM_APP } from './lib/appVariant'
+import { IS_ADMIN_APP } from './lib/appVariant'
 
 // Platform (Super Admin) pages: the firm desktop app replaces this with null
 // at compile time, so the page code isn't even shipped there.
-const Firms = IS_FIRM_APP ? null : lazy(() => import('./pages/platform/Firms'))
+const Firms = import.meta.env.VITE_DESKTOP_APP === 'firm' ? null : lazy(() => import('./pages/platform/Firms'))
 
 function Spinner() {
   return (
