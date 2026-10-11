@@ -128,19 +128,23 @@ function FinanceTab() {
         <div className="bg-white rounded-xl p-6 shadow-card border border-paper-line">
           <h3 className="text-lg font-semibold text-ink-800 mb-4">أعلى القضايا مبالغ مستحقة</h3>
           {topOutstanding.length ? (
+            // SVG labels lay out wrongly inside an RTL page: draw the chart LTR and
+            // mirror it instead (bars grow from the right, case titles on the right).
+            <div dir="ltr">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={topOutstanding} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E3DDCC" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11, fill: '#A3947C' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="title" width={100} tick={{ fontSize: 11, fill: '#5E4D34' }} axisLine={false} tickLine={false} />
+                <XAxis type="number" reversed tick={{ fontSize: 11, fill: '#A3947C' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="title" orientation="right" width={150} tickFormatter={(t) => (t?.length > 22 ? t.slice(0, 21) + '…' : t)} tick={{ fontSize: 11, fill: '#5E4D34' }} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(v) => sar(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E3DDCC', fontSize: 11 }} />
-                <Bar dataKey="remaining" radius={[0, 4, 4, 0]} maxBarSize={18}>
+                <Bar dataKey="remaining" radius={[4, 0, 0, 4]} maxBarSize={18}>
                   {topOutstanding.map((_, i) => (
                     <Cell key={i} fill={i === 0 ? '#2B2010' : '#B98B33'} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            </div>
           ) : (
             <EmptyState message="لا توجد بيانات كافية" />
           )}

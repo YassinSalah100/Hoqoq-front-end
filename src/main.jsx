@@ -14,12 +14,17 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
 import './index.css'
-import App from './App.jsx'
+
+// VITE_SITE=landing builds the public website only (see .env.landing). The
+// choice is made at build time, so the landing bundle contains none of the
+// app (login, dashboards, Super Admin) and the app bundle none of the landing.
+const { default: Root } =
+  import.meta.env.VITE_SITE === 'landing' ? await import('./landing/LandingApp.jsx') : await import('./App.jsx')
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <Root />
     </BrowserRouter>
   </StrictMode>,
 )

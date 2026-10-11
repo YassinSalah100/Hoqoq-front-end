@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Mail, Eye, EyeOff, AlertCircle, Briefcase, Gavel, Sparkles, ShieldCheck, Lock, TriangleAlert, ArrowLeft } from 'lucide-react'
+import { Mail, Eye, EyeOff, AlertCircle, Briefcase, Gavel, Sparkles, TriangleAlert, ArrowLeft } from 'lucide-react'
 import { getDefaultRoute } from '../../data/auth'
 import { useAuth } from '../../context/AuthContext'
 import BrandMark from '../../components/ui/BrandMark'
@@ -223,11 +223,6 @@ export default function Login() {
                 </Link>
               </p>
             )}
-
-            <div className="flex items-center justify-center gap-1.5 mt-6 text-[13px] text-brand-brown/55">
-              <Lock size={14} />
-              اتصال مشفّر — بياناتك محمية
-            </div>
 
             <PoweredByEthereal />
           </div>

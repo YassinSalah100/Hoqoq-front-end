@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import { authApi } from '../../lib/api'
+import { tokenFromPasted, useLinkToken } from '../../lib/linkToken'
 import { isStrongPassword, PASSWORD_RULE_HINT, WEAK_PASSWORD_MESSAGE } from '../../lib/passwordPolicy'
 
 const inputClass =
@@ -13,25 +14,16 @@ const ERROR_MESSAGES = {
   'Employee credentials are administered by the Firm Admin': 'بيانات دخول الموظفين يحددها مدير المكتب، تواصل معه',
 }
 
-// Accepts the full emailed link (any host) or the bare token.
-function tokenFromPasted(value) {
-  const text = value.trim()
-  if (!text) return ''
-  const match = /[?&]token=([A-Za-z0-9_-]{20,})/.exec(text)
-  if (match) return match[1]
-  return /^[A-Za-z0-9_-]{20,}$/.test(text) ? text : ''
-}
-
 // One-time Firm Admin activation from the invitation email — just
 // POST /auth/activate { token, newPassword }. Employees never come through
 // here: their credentials are set by the Firm Admin directly.
 export default function Activate() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  // In the desktop app there is no website for the emailed link to open, so
-  // the owner pastes the link (or just its token) here instead.
+  // Arrives from a hoqooq:// link (token in the address), or the owner pastes
+  // the emailed link (or just its token) here.
+  const linkToken = useLinkToken()
   const [pasted, setPasted] = useState('')
-  const token = searchParams.get('token') || tokenFromPasted(pasted)
+  const token = linkToken || tokenFromPasted(pasted)
 
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
