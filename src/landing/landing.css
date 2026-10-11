@@ -1,0 +1,197 @@
+/* Landing-site motion. Subtle by design: short distances, soft easing, and
+   nothing at all when the visitor's system asks for reduced motion. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Scroll reveal — elements start slightly lower and transparent, then settle. */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  transition:
+    opacity 0.8s var(--ease-out),
+    transform 0.8s var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+.reveal-scale {
+  transform: translate3d(0, 18px, 0) scale(0.97);
+}
+
+/* Hero entrance: plays once on load, staggered by --d. */
+@keyframes hq-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.hero-in {
+  opacity: 0;
+  animation: hq-rise 0.9s var(--ease-out) forwards;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Product screenshot settles from a gentle 3D tilt. */
+@keyframes hq-settle {
+  from {
+    opacity: 0;
+    transform: perspective(1600px) rotateX(10deg) rotateY(-6deg) translate3d(0, 40px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1600px) rotateX(0) rotateY(0) translate3d(0, 0, 0) scale(1);
+  }
+}
+.hero-shot {
+  opacity: 0;
+  animation: hq-settle 1.3s var(--ease-out) 0.35s forwards;
+  transform-origin: 50% 100%;
+}
+
+/* Small UI cards floating over the screenshot. */
+@keyframes hq-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+@keyframes hq-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.float-card {
+  opacity: 0;
+  animation:
+    hq-pop 0.8s var(--ease-out) var(--d, 1.2s) forwards,
+    hq-float 6s ease-in-out calc(var(--d, 1.2s) + 0.8s) infinite;
+}
+
+/* Slow, faint light drifting across the hero background. */
+@keyframes hq-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4%, 3%, 0) scale(1.08);
+  }
+}
+.hero-glow {
+  animation: hq-drift 18s ease-in-out infinite;
+}
+
+/* Gold sheen passing over the primary button now and then. */
+@keyframes hq-sheen {
+  0%,
+  70% {
+    transform: translateX(120%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(-220%) skewX(-20deg);
+  }
+}
+.btn-sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: translateX(120%) skewX(-20deg);
+  animation: hq-sheen 5.5s ease-in-out 2s infinite;
+  z-index: -1;
+}
+
+/* How-it-works connector line drawing in. */
+.draw-line {
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 1.4s var(--ease-out) 0.2s;
+}
+.is-visible .draw-line {
+  transform: scaleX(1);
+}
+
+/* Screenshot gallery crossfade. */
+.shot-layer {
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.6s var(--ease-out);
+}
+
+/* FAQ accordion: animate height via grid rows. */
+.faq-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease-out);
+}
+.faq-body.open {
+  grid-template-rows: 1fr;
+}
+.faq-body > div {
+  overflow: hidden;
+}
+
+/* Card hover lift (pointer devices only). */
+@media (hover: hover) {
+  .lift {
+    transition:
+      transform 0.35s var(--ease-out),
+      box-shadow 0.35s var(--ease-out),
+      border-color 0.35s var(--ease-out);
+  }
+  .lift:hover {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal,
+  .reveal-scale,
+  .hero-in,
+  .hero-shot,
+  .float-card,
+  .shot-layer,
+  .draw-line {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .hero-glow,
+  .btn-sheen::after {
+    animation: none !important;
+  }
+  .faq-body {
+    transition: none;
+  }
+}

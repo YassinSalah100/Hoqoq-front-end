@@ -3,6 +3,7 @@ import { AlertCircle, Check, Copy, ExternalLink, KeyRound, MailCheck } from 'luc
 import { Header, Footer, DownloadButton } from './Chrome'
 import { APP_PROTOCOL } from './config'
 import { useLinkToken } from '../lib/linkToken'
+import './landing.css'
 
 const KINDS = {
   activate: {
@@ -49,7 +50,7 @@ export default function AppHandoff({ kind }) {
     <div className="min-h-screen flex flex-col bg-brand-cream-light text-brand-brown" dir="rtl">
       <Header withNav={false} />
       <main className="flex-1 flex items-start sm:items-center justify-center px-4 py-10 sm:py-16">
-        <div className="w-full max-w-lg rounded-3xl bg-white border border-brand-border shadow-[0_30px_60px_-35px_rgba(43,32,16,0.45)] p-6 sm:p-9">
+        <div className="hero-in w-full max-w-lg rounded-3xl bg-white border border-brand-border shadow-[0_30px_60px_-35px_rgba(43,32,16,0.45)] p-6 sm:p-9">
           <div className="w-14 h-14 rounded-2xl bg-brand-brown text-brand-gold-light flex items-center justify-center mb-5">
             <Icon size={26} />
           </div>
@@ -66,7 +67,7 @@ export default function AppHandoff({ kind }) {
 
               <a
                 href={appLink}
-                className="mt-7 flex items-center justify-center gap-2 w-full rounded-xl bg-brand-gold hover:bg-brand-tagline text-white font-semibold py-3.5 text-[16px] transition-colors"
+                className="btn-sheen mt-7 flex items-center justify-center gap-2 w-full rounded-xl bg-brand-gold hover:bg-brand-tagline text-white font-semibold py-3.5 text-[16px] transition-colors active:scale-[0.99]"
               >
                 <ExternalLink size={18} />
                 {copy.appButton}

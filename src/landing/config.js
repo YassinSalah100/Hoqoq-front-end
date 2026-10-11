@@ -12,3 +12,7 @@ export const CONTACT_EMAIL = 'hoqooq89@gmail.com'
 export const APP_PROTOCOL = 'hoqooq'
 
 export const SYSTEM_REQUIREMENTS = ['Windows 10 أو Windows 11 (64-bit)', 'اتصال بالإنترنت', 'مساحة تخزين 400 ميجابايت تقريبًا']
+
+// Shown next to the download button. Update with each published release.
+export const APP_VERSION = '1.0.0'
+export const DOWNLOAD_SIZE = '115 ميجابايت'
