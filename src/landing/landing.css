@@ -243,3 +243,11 @@ html {
     transition: none;
   }
 }
+
+/* Horizontal chip rows that scroll without a visible scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

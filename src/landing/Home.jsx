@@ -19,12 +19,15 @@ import {
   CircleCheck,
   Gavel,
   Info,
+  MousePointerClick,
+  Sparkles,
 } from 'lucide-react'
 import './landing.css'
 import { Header, Footer, DownloadButton, BackToTop } from './Chrome'
 import Reveal from './Reveal'
 import { useReveal, isWindowsDevice, useAutoplay } from './motion'
 import { SCREENS, WindowFrame, ScreenStack, Roles, Showcase, Trust, FinalCta } from './Sections'
+import LiveDemo from './demo/LiveDemo'
 import { CONTACT_EMAIL, SYSTEM_REQUIREMENTS } from './config'
 
 const FEATURES = [
@@ -121,10 +124,11 @@ function Hero() {
           <div className="hero-in mt-9 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start items-center sm:items-start" style={{ '--d': '360ms' }}>
             <DownloadButton size="lg" withMeta className="w-full sm:w-auto text-brand-cream" />
             <a
-              href="#how"
-              className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-brand-cream/20 px-7 py-3.5 text-[16px] text-brand-cream/90 hover:bg-white/[0.06] hover:border-brand-cream/35 transition-colors"
+              href="#demo"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-brand-cream/20 px-7 py-3.5 text-[16px] text-brand-cream/90 hover:bg-white/[0.06] hover:border-brand-cream/35 transition-colors"
             >
-              كيف أبدأ؟
+              <MousePointerClick size={18} />
+              جرّب التطبيق الآن
             </a>
           </div>
         </div>
@@ -184,6 +188,33 @@ function Highlights() {
         ))}
       </Reveal>
     </div>
+  )
+}
+
+function DemoSection() {
+  return (
+    <section id="demo" className="scroll-mt-20 pt-16 sm:pt-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <Reveal className="max-w-2xl mx-auto text-center mb-10">
+          <p className="inline-flex items-center gap-2 rounded-full bg-brand-gold/15 text-brand-tagline px-3.5 py-1.5 text-[13px] font-semibold mb-5">
+            <Sparkles size={15} />
+            عرض تفاعلي — جرّبه الآن
+          </p>
+          <h2 className="font-display text-[30px] sm:text-[40px] font-bold leading-snug">جرّب حقوق بنفسك، قبل أن تحمّله</h2>
+          <p className="mt-4 text-[16px] sm:text-lg leading-relaxed text-brand-brown/60">
+            تنقّل بين الأقسام، افتح قضية وسجّل دفعة، أنهِ جلسة أو مهمة، وشاهد لوحة التحكم تتحدث فورًا. البيانات هنا تجريبية بالكامل.
+          </p>
+        </Reveal>
+        <Reveal scale>
+          <LiveDemo />
+        </Reveal>
+        <Reveal className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[13px] text-brand-brown/55">
+          <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-brand-gold" /> نفس الواجهة العربية الموجودة في التطبيق</span>
+          <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-brand-gold" /> يعمل على الهاتف والكمبيوتر</span>
+          <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-brand-gold" /> لا يحتاج تسجيل دخول</span>
+        </Reveal>
+      </div>
+    </section>
   )
 }
 
@@ -392,6 +423,7 @@ export default function Home() {
       <main>
         <Hero />
         <Highlights />
+        <DemoSection />
         <Features />
         <Roles />
         <Showcase />

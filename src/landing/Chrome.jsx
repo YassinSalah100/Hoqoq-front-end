@@ -6,10 +6,10 @@ import { APP_VERSION, CONTACT_EMAIL, DOWNLOAD_SIZE, DOWNLOAD_URL } from './confi
 import { useActiveSection, useScrolled } from './motion'
 
 const NAV = [
+  ['demo', 'جرّب الآن'],
   ['features', 'المزايا'],
   ['roles', 'لفريقك'],
   ['how', 'كيف يعمل'],
-  ['screens', 'من داخل التطبيق'],
   ['faq', 'الأسئلة الشائعة'],
 ]
 const NAV_IDS = NAV.map(([id]) => id)
