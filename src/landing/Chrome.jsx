@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUp, Download, Menu, X } from 'lucide-react'
 import BrandMark from '../components/ui/BrandMark'
-import { APP_VERSION, CONTACT_EMAIL, DOWNLOAD_SIZE, DOWNLOAD_URL } from './config'
+import { ANDROID_APK_URL, APP_VERSION, CONTACT_EMAIL, DOWNLOAD_SIZE, DOWNLOAD_URL, GUIDE_URL } from './config'
 import { useActiveSection, useScrolled } from './motion'
 
 const NAV = [
@@ -151,6 +151,8 @@ export function Footer() {
         <div className="flex flex-col items-center md:items-start gap-2.5 text-sm">
           <p className="text-brand-gold-light font-semibold mb-1">تواصل معنا</p>
           <p className="text-brand-cream/55">لطلب حساب لمكتبك أو للاستفسار:</p>
+          <a href={GUIDE_URL} target="_blank" rel="noopener" className="hover:text-white transition-colors">دليل الاستخدام (PDF)</a>
+          <a href={ANDROID_APK_URL} rel="noopener" className="hover:text-white transition-colors">تطبيق Android (APK)</a>
           <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr" className="hover:text-white transition-colors">
             {CONTACT_EMAIL}
           </a>

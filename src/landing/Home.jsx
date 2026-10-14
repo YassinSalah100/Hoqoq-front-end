@@ -16,6 +16,8 @@ import {
   Info,
   MousePointerClick,
   Sparkles,
+  BookOpen,
+  Smartphone,
 } from 'lucide-react'
 import './landing.css'
 import { Header, Footer, DownloadButton, BackToTop } from './Chrome'
@@ -23,7 +25,7 @@ import Reveal from './Reveal'
 import { useReveal, isWindowsDevice } from './motion'
 import { SCREENS, WindowFrame, Roles, Showcase, Trust } from './Sections'
 import LiveDemo from './demo/LiveDemo'
-import { CONTACT_EMAIL, SYSTEM_REQUIREMENTS } from './config'
+import { ANDROID_APK_URL, CONTACT_EMAIL, GUIDE_URL, SYSTEM_REQUIREMENTS } from './config'
 
 const HIGHLIGHTS = [
   { icon: Languages, text: 'واجهة عربية بالكامل' },
@@ -39,6 +41,14 @@ const STEPS = [
 ]
 
 const FAQ = [
+  {
+    q: 'أين أجد شرحًا لاستخدام التطبيق؟',
+    a: 'حمّل «دليل الاستخدام» من قسم التحميل أسفل الصفحة: ملف PDF مصوّر يشرح كل أقسام حقوق خطوة بخطوة، من التثبيت والتفعيل حتى المالية والصلاحيات.',
+  },
+  {
+    q: 'هل يوجد تطبيق للهاتف؟',
+    a: 'نعم، يتوفر تطبيق Android يمكن تحميله من قسم التحميل أسفل الصفحة. قد يطلب منك الهاتف السماح بتثبيت التطبيقات من مصادر خارجية.',
+  },
   {
     q: 'كيف أحصل على حساب لمكتبي؟',
     a: `حسابات المكاتب يُنشئها فريق حقوق. راسلنا على ${CONTACT_EMAIL} وسنُنشئ مساحة مكتبك وحساب المالك، ثم تصلك رسالة تفعيل لاختيار كلمة المرور.`,
@@ -298,6 +308,22 @@ function DownloadSection() {
               التطبيق مخصص لأجهزة الكمبيوتر بنظام Windows — افتح هذه الصفحة من جهاز الكمبيوتر لتحميله.
             </p>
           )}
+          <div className="mt-8 grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto text-right">
+            <a href={GUIDE_URL} target="_blank" rel="noopener" className="group flex items-center gap-4 rounded-2xl bg-white/[0.05] border border-white/10 hover:border-brand-gold/50 hover:bg-white/[0.08] px-5 py-4 transition-colors">
+              <span className="w-11 h-11 rounded-xl bg-brand-gold/15 text-brand-gold-light flex items-center justify-center shrink-0"><BookOpen size={21} /></span>
+              <span className="min-w-0">
+                <span className="block font-semibold text-brand-cream">دليل الاستخدام</span>
+                <span className="block text-[13px] text-brand-cream/55">شرح مصوّر خطوة بخطوة · PDF</span>
+              </span>
+            </a>
+            <a href={ANDROID_APK_URL} rel="noopener" className="group flex items-center gap-4 rounded-2xl bg-white/[0.05] border border-white/10 hover:border-brand-gold/50 hover:bg-white/[0.08] px-5 py-4 transition-colors">
+              <span className="w-11 h-11 rounded-xl bg-brand-gold/15 text-brand-gold-light flex items-center justify-center shrink-0"><Smartphone size={21} /></span>
+              <span className="min-w-0">
+                <span className="block font-semibold text-brand-cream">تطبيق Android</span>
+                <span className="block text-[13px] text-brand-cream/55">تحميل ملف APK للهاتف</span>
+              </span>
+            </a>
+          </div>
           <ul className="mt-9 flex flex-col sm:flex-row flex-wrap justify-center gap-x-8 gap-y-2.5 text-[14px] text-brand-cream/65">
             {SYSTEM_REQUIREMENTS.map((req) => (
               <li key={req} className="inline-flex items-center justify-center gap-2">

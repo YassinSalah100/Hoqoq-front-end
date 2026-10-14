@@ -16,3 +16,7 @@ export const SYSTEM_REQUIREMENTS = ['Windows 10 أو Windows 11 (64-bit)', 'ات
 // Shown next to the download button. Update with each published release.
 export const APP_VERSION = '1.0.0'
 export const DOWNLOAD_SIZE = '115 ميجابايت'
+
+// User guide (Arabic PDF) and the Android app.
+export const GUIDE_URL = '/guide/Hoqooq-User-Guide.pdf'
+export const ANDROID_APK_URL = 'https://github.com/Abdelrhmangaber99/hoqooq_app/releases/download/v1.0.0/app-release.apk'
