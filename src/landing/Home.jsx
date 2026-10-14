@@ -124,6 +124,16 @@ function Hero() {
               جرّب التطبيق الآن
             </a>
           </div>
+          <div className="hero-in mt-6 flex flex-wrap gap-2.5 justify-center lg:justify-start" style={{ '--d': '480ms' }}>
+            <a href={ANDROID_APK_URL} rel="noopener" className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] border border-white/15 px-4 py-2 text-[14px] text-brand-cream/90 hover:bg-white/[0.12] hover:border-brand-gold/50 transition-colors">
+              <Smartphone size={16} className="text-brand-gold-light" />
+              تطبيق Android
+            </a>
+            <a href={GUIDE_URL} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] border border-white/15 px-4 py-2 text-[14px] text-brand-cream/90 hover:bg-white/[0.12] hover:border-brand-gold/50 transition-colors">
+              <BookOpen size={16} className="text-brand-gold-light" />
+              دليل الاستخدام (PDF)
+            </a>
+          </div>
         </div>
 
         <div className="relative lg:-mb-20">

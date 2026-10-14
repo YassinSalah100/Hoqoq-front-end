@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUp, Download, Menu, X } from 'lucide-react'
+import { ArrowUp, BookOpen, Download, Menu, Smartphone, X } from 'lucide-react'
 import BrandMark from '../components/ui/BrandMark'
 import { ANDROID_APK_URL, APP_VERSION, CONTACT_EMAIL, DOWNLOAD_SIZE, DOWNLOAD_URL, GUIDE_URL } from './config'
 import { useActiveSection, useScrolled } from './motion'
@@ -83,7 +83,15 @@ export function Header({ withNav = true }) {
                 </a>
               ))}
             </nav>
-            <div className="hidden md:block">
+            <div className="hidden md:flex items-center gap-2">
+              <a href={GUIDE_URL} target="_blank" rel="noopener" title="دليل الاستخدام (PDF)" className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm text-brand-brown/70 hover:text-brand-brown hover:bg-brand-cream transition-colors">
+                <BookOpen size={17} />
+                الدليل
+              </a>
+              <a href={ANDROID_APK_URL} rel="noopener" title="تطبيق Android" className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border px-3 py-2.5 text-sm text-brand-brown/80 hover:border-brand-gold/60 transition-colors">
+                <Smartphone size={17} />
+                Android
+              </a>
               <DownloadButton />
             </div>
             <button
@@ -107,6 +115,8 @@ export function Header({ withNav = true }) {
                   {label}
                 </a>
               ))}
+              <a href={ANDROID_APK_URL} rel="noopener" className="py-3 flex items-center gap-2 text-brand-brown/80 border-b border-brand-border/60"><Smartphone size={17} /> تطبيق Android (APK)</a>
+              <a href={GUIDE_URL} target="_blank" rel="noopener" className="py-3 flex items-center gap-2 text-brand-brown/80"><BookOpen size={17} /> دليل الاستخدام (PDF)</a>
               <DownloadButton className="mt-4 w-full" />
             </nav>
           </div>
